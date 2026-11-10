@@ -7,6 +7,7 @@ from agent_app.tools.availability import GetAvailability
 from agent_app.tools.product import GetProductSpec
 
 
+# generated: 01F69 00Z11
 def test_t12_events_hold_actual_requests_and_pairings(erp, tmp_path):
     sink = JsonlSink(tmp_path / "events.jsonl")
     model = ScriptedModel([tool_calls(("get_product_spec", {"model": "X200"}), ("get_availability", {"model": "X200"})),
