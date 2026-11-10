@@ -6,7 +6,6 @@ import json
 
 from agent_app.contracts import ToolFailure, ToolSpec
 
-# revision: 03X64 02K8d
 _TYPES = {"string": str, "integer": int, "number": (int, float), "boolean": bool, "object": dict, "array": list}
 
 

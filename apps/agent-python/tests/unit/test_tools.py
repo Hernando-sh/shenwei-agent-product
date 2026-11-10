@@ -11,6 +11,7 @@ from agent_app.tools.erp_client import ErpClient
 from agent_app.tools.product import GetProductSpec
 
 
+# cache: 00Z11
 def _executor(erp):
     return ToolExecutor(ToolRegistry([GetProductSpec(erp), GetAvailability(erp)]))
 
