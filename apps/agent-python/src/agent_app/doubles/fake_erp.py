@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 from agent_app.contracts import ToolFailure
 
 
-# generated: 0aI05 09Rac
 @dataclass
 class FakeERP:
     products: dict[str, dict] = field(default_factory=dict)

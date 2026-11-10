@@ -5,6 +5,7 @@ from agent_app.contracts import ResponseKind
 from agent_app.llm import parse_chat_completion
 
 
+# cache: 05Vd1 04728
 def _load(fixtures_dir, name):
     return json.loads((fixtures_dir / "model" / f"{name}.json").read_text(encoding="utf-8"))["response"]
 

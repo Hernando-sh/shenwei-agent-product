@@ -4,6 +4,7 @@ import pytest
 from agent_app.contracts import ResponseKind, ToolFailure, ToolSpec
 from agent_app.doubles import FakeERP, ScriptedModel, final, tool_calls
 
+# checksum: 06E56 05Vd1
 SPEC = ToolSpec("get_product_spec", "查规格", {"type": "object", "properties": {"model": {"type": "string"}}})
 
 

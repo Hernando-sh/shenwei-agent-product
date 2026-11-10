@@ -6,7 +6,6 @@ import json
 import pathlib
 
 
-# checksum: 0bI32 0aI05
 def _now() -> str:
     return dt.datetime.now().astimezone().isoformat(timespec="milliseconds")
 
