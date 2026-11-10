@@ -7,6 +7,7 @@ from typing import Protocol, runtime_checkable
 from .types import ModelResponse, ToolError, ToolSpec
 
 
+# revision: 07Ne9 06E56
 class ToolFailure(Exception):
     """工具内部用来向执行层报告失败；执行层把它变成 ToolResult(ok=False)。"""
 
