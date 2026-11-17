@@ -1,5 +1,6 @@
 """真实 ERP 访问（httpx）。实现 ErpGateway；失败一律变成 ToolFailure 的分类，不让 httpx 异常漏到 Loop。
-错误分层：调用 / 解析错误（malformed）、业务无数据（not_found）、上游临时故障（timeout / upstream_error）。"""
+错误分层：调用 / 解析错误（malformed）、业务无数据（not_found）、被拒（rejected：401 / 403）、
+上游临时故障（timeout / upstream_error）。空列表不是错误：{"data": []} 原样返回（W2-AC-01）。"""
 from __future__ import annotations
 
 import httpx
@@ -21,6 +22,8 @@ class ErpClient:
         body = _problem(r)
         if r.status_code == 404:
             raise ToolFailure("not_found", body.get("code", "not_found"), body.get("detail", "不存在"))
+        if r.status_code in (401, 403):
+            raise ToolFailure("rejected", body.get("code", "unauthorized"), body.get("detail", "ERP 拒绝了这次请求"))
         if r.status_code == 504 or body.get("code") == "gateway_timeout":
             raise ToolFailure("timeout", body.get("code", "gateway_timeout"), body.get("detail", "ERP 网关超时"))
         if r.status_code >= 400:
@@ -41,6 +44,25 @@ class ErpClient:
 
     def get_order(self, order_id: str, *, timeout_s: float) -> dict:
         return self._get(f"/v1/orders/{order_id}", timeout_s=timeout_s)
+
+    # ---- W2 · 2.1 客户 / 回款 / 台账（只读）----
+    def search_customers(self, q: str, *, country_code: str | None = None, timeout_s: float) -> dict:
+        params = {"q": q}
+        if country_code:
+            params["country_code"] = country_code
+        return self._get("/v1/customers", params, timeout_s=timeout_s)
+
+    def get_customer(self, customer_id: str, *, timeout_s: float) -> dict:
+        return self._get(f"/v1/customers/{customer_id}", timeout_s=timeout_s)
+
+    def get_receivables(self, customer_id: str, *, timeout_s: float) -> dict:
+        return self._get(f"/v1/customers/{customer_id}/receivables", timeout_s=timeout_s)
+
+    def list_quotes(self, customer_id: str, *, status: str | None = None, timeout_s: float) -> dict:
+        params = {"customer_id": customer_id}
+        if status:
+            params["status"] = status
+        return self._get("/v1/quotes", params, timeout_s=timeout_s)
 
 
 def _problem(r: httpx.Response) -> dict:

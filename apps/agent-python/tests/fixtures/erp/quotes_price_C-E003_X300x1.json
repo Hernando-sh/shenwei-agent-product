@@ -1,0 +1,74 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/quotes/price",
+    "query": {
+      "customer_id": "C-E003",
+      "lines": "X300:1"
+    }
+  },
+  "status": 200,
+  "content_type": "application/json",
+  "body": {
+    "customer_id": "C-E003",
+    "price_group": "A",
+    "lines": [
+      {
+        "line_no": 1,
+        "sku": "X300",
+        "name_en": "X300 transfer pump",
+        "qty": 1,
+        "uom": "EA",
+        "list_price": {
+          "amount": 4580.0,
+          "currency": "CNY"
+        },
+        "conditions": [
+          {
+            "type": "PR00",
+            "description": "挂牌价",
+            "value": 4580.0,
+            "currency": "CNY"
+          },
+          {
+            "type": "K007",
+            "description": "客户等级折扣（A 级）",
+            "rate": 0.12
+          },
+          {
+            "type": "ZQTY",
+            "description": "数量折扣",
+            "rate": 0.0
+          },
+          {
+            "type": "ZFXR",
+            "description": "汇率换算 CNY→USD",
+            "rate": 7.2
+          }
+        ],
+        "unit_price": 559.78,
+        "amount": 559.78
+      }
+    ],
+    "total_amount": 559.78,
+    "currency": "USD",
+    "incoterm": {
+      "code": "FOB",
+      "location": "Shenzhen"
+    },
+    "payment_terms_code": "NET30_BL",
+    "payment_terms": "Net 30 after B/L",
+    "price_rule_ref": "报价规程 v2026.1 第 3 条",
+    "fx_rate": {
+      "from": "CNY",
+      "to": "USD",
+      "rate": 7.2
+    },
+    "price_date": "2026-09-20",
+    "recorded": false
+  }
+}

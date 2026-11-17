@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 
+# revision: 0bM2b 0aJbf
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 APP = ROOT / "apps/agent-python"
 

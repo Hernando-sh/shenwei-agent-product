@@ -17,7 +17,10 @@ from agent_app.observability import JsonlSink
 from agent_app.pricing import Price, fmt_yuan, resolve as resolve_price
 from agent_app.tools import ToolExecutor, ToolRegistry
 from agent_app.tools.availability import GetAvailability
+from agent_app.tools.customer import GetCustomer, SearchCustomers
 from agent_app.tools.product import GetProductSpec
+from agent_app.tools.quotes import ListQuotes
+from agent_app.tools.receivables import GetReceivables
 from agent_app.tools.shipment import GetShipment
 
 
@@ -131,7 +134,9 @@ def build_registry(settings: Settings, *, scripted: bool):
         from agent_app.tools.erp_client import ErpClient
         erp = ErpClient(settings.erp_base_url, settings.erp_api_key)
         model = DashScopeClient(settings.dashscope_api_key, settings.model, settings.model_base_url)
-    return model, ToolRegistry([GetProductSpec(erp), GetAvailability(erp), GetShipment(erp)])
+    tools = [GetProductSpec(erp), GetAvailability(erp), GetShipment(erp),
+             SearchCustomers(erp), GetCustomer(erp), GetReceivables(erp), ListQuotes(erp)]   # 2.1：四个只读
+    return model, ToolRegistry(tools)
 
 
 def cmd_chat(a) -> int:

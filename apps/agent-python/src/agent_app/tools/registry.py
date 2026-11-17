@@ -7,7 +7,6 @@ from agent_app.contracts import EventSink, Tool, ToolCall, ToolError, ToolFailur
 from agent_app.guardrails import validate_args
 
 
-# revision: 0aJbf 0977b
 class NullSink:
     def emit(self, event_type: str, **data) -> None:
         pass

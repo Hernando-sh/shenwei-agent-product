@@ -1,0 +1,68 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/products/S10",
+    "query": {}
+  },
+  "status": 200,
+  "content_type": "application/json",
+  "body": {
+    "sku": "S10",
+    "name_cn": "S10 压力传感器",
+    "name_en": "S10 pressure transmitter",
+    "category": {
+      "code": "S",
+      "name_cn": "压力传感器",
+      "name_en": "Pressure transmitter"
+    },
+    "uom": "EA",
+    "list_price": {
+      "amount": 460.0,
+      "currency": "CNY"
+    },
+    "lifecycle": "active",
+    "lead_time_days": 5,
+    "doc_ref": "D06/D22",
+    "hs_code": "9026.20",
+    "country_of_origin": "CN",
+    "specs": {
+      "power_w": null,
+      "cooling_capacity_w": null,
+      "max_flow_lpm": null,
+      "max_pressure_bar": null,
+      "max_head_m": null,
+      "range_bar_min": 0.0,
+      "range_bar_max": 6.0,
+      "range_m_min": null,
+      "range_m_max": null,
+      "setpoint_min_c": null,
+      "setpoint_max_c": null,
+      "stability_c": null,
+      "tank_l": null,
+      "operating_temp_min_c": -10.0,
+      "operating_temp_max_c": 60.0,
+      "accuracy_fs_pct": 0.5,
+      "output": "4-20 mA",
+      "ip_rating": "IP65",
+      "high_temp_hours": null,
+      "nominal_size_dn": null,
+      "air_supply_bar_min": null,
+      "air_supply_bar_max": null,
+      "insertion_mm": null,
+      "sensor_type": null,
+      "wiring": null,
+      "connection": "G1/4",
+      "supply_voltage": "12–24 V DC",
+      "weight_kg": 0.18
+    },
+    "key_spec": "0–6 bar；0.5% FS；4–20 mA；IP65；-10–60 °C",
+    "image_url": "/static/sku/s10-main.png",
+    "spec_source": "ERP 商品主数据；详细参数与运行边界以产品手册为准（doc_ref）",
+    "created_at": "2026-06-01T09:00:00+08:00",
+    "updated_at": "2026-06-01T09:00:00+08:00"
+  }
+}

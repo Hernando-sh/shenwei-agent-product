@@ -1,0 +1,57 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/customers/C-E003/receivables",
+    "query": {}
+  },
+  "status": 200,
+  "content_type": "application/json",
+  "body": {
+    "customer_id": "C-E003",
+    "legal_name": "Rheinwerk Anlagenbau GmbH",
+    "currency": "USD",
+    "ar_balance": 18640.0,
+    "overdue_amount": 18640.0,
+    "overdue_days": 23,
+    "credit_status": "overdue",
+    "credit_limit": 50000.0,
+    "exposure": 20742.22,
+    "aging": {
+      "current": 0.0,
+      "d1_30": 18640.0,
+      "d31_60": 0.0,
+      "d61_90": 0.0,
+      "d90_plus": 0.0
+    },
+    "open_items": [
+      {
+        "id": "INV-260729",
+        "order_id": null,
+        "issue_date": "2026-07-29",
+        "due_date": "2026-08-28",
+        "amount": 11200.0,
+        "open_amount": 11200.0,
+        "overdue_days": 23
+      },
+      {
+        "id": "INV-260806",
+        "order_id": null,
+        "issue_date": "2026-08-06",
+        "due_date": "2026-09-05",
+        "amount": 7440.0,
+        "open_amount": 7440.0,
+        "overdue_days": 15
+      }
+    ],
+    "last_payment_at": "2026-07-30",
+    "payment_terms_code": "NET30_BL",
+    "payment_terms": "Net 30 after B/L",
+    "orders_count": 5,
+    "orders_total": 2190.22,
+    "as_of": "2026-09-20T10:00:00+08:00"
+  }
+}

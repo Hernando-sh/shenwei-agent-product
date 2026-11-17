@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/customers/C-E999",
+    "query": {}
+  },
+  "status": 404,
+  "content_type": "application/problem+json",
+  "body": {
+    "type": "https://docs.shenwei.example/problems/customer_not_found",
+    "title": "不存在",
+    "status": 404,
+    "detail": "客户 C-E999 不存在",
+    "instance": "urn:request:01M6SZ7YJ3XD671JVD8QTWQ7AQ",
+    "code": "customer_not_found"
+  }
+}

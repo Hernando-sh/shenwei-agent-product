@@ -15,6 +15,9 @@ class FakeERP:
     inventory: dict[str, dict] = field(default_factory=dict)
     shipments: dict[str, dict] = field(default_factory=dict)
     orders: dict[str, dict] = field(default_factory=dict)
+    customers: dict[str, dict] = field(default_factory=dict)      # 2.1：主数据（含 credit）
+    receivables: dict[str, dict] = field(default_factory=dict)    # 2.1：按客户编号
+    quotes: dict[str, dict] = field(default_factory=dict)         # 2.1：台账，按报价号；测试可直接预置
     faults: dict[str, ToolFailure] = field(default_factory=dict)   # 按方法名注入：{"get_inventory": ToolFailure(...)}
     fault_times: dict[str, int] = field(default_factory=dict)      # 注入几次；缺省一直
     calls: Counter = field(default_factory=Counter)
@@ -55,6 +58,38 @@ class FakeERP:
     def get_order(self, order_id: str, *, timeout_s: float) -> dict:
         return self._lookup("get_order", self.orders, order_id, "order_not_found", "订单")
 
+    # ---- W2 · 2.1 ----
+    _SUMMARY = ("id", "number", "legal_name", "short_name", "country_code", "country", "city", "price_group",
+                "salesperson", "lifecycle")
+
+    def search_customers(self, q: str, *, country_code: str | None = None, timeout_s: float) -> dict:
+        """按公司名 / 城市 / 编号 / 国家子串匹配（不区分大小写），返回 ERP 简表形状；空结果是 data=[]。"""
+        self.calls["search_customers"] += 1
+        self._maybe_fail("search_customers")
+        needle = q.lower()
+        hits = []
+        for c in self.customers.values():
+            if country_code and c.get("country_code") != country_code.upper():
+                continue
+            hay = " ".join(str(c.get(k) or "") for k in ("id", "legal_name", "short_name", "city", "country")).lower()
+            if needle in hay:
+                hits.append({k: c.get(k) for k in self._SUMMARY})
+        return {"data": hits, "has_more": False, "next_cursor": None}
+
+    def get_customer(self, customer_id: str, *, timeout_s: float) -> dict:
+        return self._lookup("get_customer", self.customers, customer_id, "customer_not_found", "客户")
+
+    def get_receivables(self, customer_id: str, *, timeout_s: float) -> dict:
+        return self._lookup("get_receivables", self.receivables, customer_id, "customer_not_found", "客户")
+
+    def list_quotes(self, customer_id: str, *, status: str | None = None, timeout_s: float) -> dict:
+        self.calls["list_quotes"] += 1
+        self._maybe_fail("list_quotes")
+        rows = [q for q in self.quotes.values() if q.get("customer_id") == customer_id
+                and (status is None or q.get("status") == status)]
+        rows.sort(key=lambda q: q.get("created_at") or "", reverse=True)
+        return {"data": rows, "has_more": False, "next_cursor": None}
+
     @classmethod
     def from_fixtures(cls, fixtures_dir: str | pathlib.Path) -> "FakeERP":
         """读 scripts/record_fixtures.py 录下的 *.json；只装 200 的，404 样本留给契约测试用。"""
@@ -72,6 +107,14 @@ class FakeERP:
                 erp.shipments[body["tracking_no"]] = body
             elif path.startswith("/v1/orders/"):
                 erp.orders[body["id"]] = body
+            elif path.startswith("/v1/customers/") and path.endswith("/receivables"):
+                erp.receivables[body["customer_id"]] = body
+            elif path.startswith("/v1/customers/"):
+                erp.customers[body["id"]] = body
+            elif path == "/v1/quotes":
+                for q in body.get("data", []):                  # 基础种子没有报价；录到就装
+                    erp.quotes[q["id"]] = q
+            # /v1/customers?q= 简表与 /v1/quotes/price 由方法现算或 2.4 装入，不在这里
         return erp
 
     @staticmethod

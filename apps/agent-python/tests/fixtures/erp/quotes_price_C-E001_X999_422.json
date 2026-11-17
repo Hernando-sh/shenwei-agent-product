@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/quotes/price",
+    "query": {
+      "customer_id": "C-E001",
+      "lines": "X999:1"
+    }
+  },
+  "status": 422,
+  "content_type": "application/problem+json",
+  "body": {
+    "type": "https://docs.shenwei.example/problems/unknown_sku",
+    "title": "参数不合法",
+    "status": 422,
+    "detail": "型号 X999 不存在或已停售",
+    "instance": "urn:request:01M6SZ7YJQZAMF1DGCWER1TCN9",
+    "code": "unknown_sku"
+  }
+}

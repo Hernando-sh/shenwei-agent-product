@@ -1,0 +1,34 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/customers",
+    "query": {
+      "q": "Rheinwerk",
+      "country_code": "DE"
+    }
+  },
+  "status": 200,
+  "content_type": "application/json",
+  "body": {
+    "data": [
+      {
+        "id": "C-E003",
+        "number": "C-E003",
+        "legal_name": "Rheinwerk Anlagenbau GmbH",
+        "short_name": "Rheinwerk Anlagenbau",
+        "country_code": "DE",
+        "country": "Germany",
+        "city": "Düsseldorf",
+        "price_group": "A",
+        "salesperson": "sales:lin",
+        "lifecycle": "active"
+      }
+    ],
+    "has_more": false,
+    "next_cursor": null
+  }
+}

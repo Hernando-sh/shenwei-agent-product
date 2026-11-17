@@ -1,0 +1,73 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/customers/C-E001",
+    "query": {}
+  },
+  "status": 200,
+  "content_type": "application/json",
+  "body": {
+    "id": "C-E001",
+    "number": "C-E001",
+    "legal_name": "PT Nusantara Process Engineering",
+    "short_name": "PT Nusantara",
+    "country_code": "ID",
+    "country": "Indonesia",
+    "city": "Jakarta",
+    "price_group": "B",
+    "salesperson": "sales:zhou",
+    "lifecycle": "active",
+    "website": "https://www.nusantara-pe.example",
+    "industry": "工艺工程承包",
+    "payment_terms_code": "TT30_70",
+    "payment_terms": "T/T 30% deposit, 70% before shipment",
+    "incoterm_default": {
+      "code": "FOB",
+      "location": "Shenzhen"
+    },
+    "currency": "USD",
+    "contacts": [
+      {
+        "id": "C-E001-P1",
+        "name": "Dewi Santoso",
+        "title": "Procurement",
+        "email": "dewi@nusantara-pe.example",
+        "phone": null,
+        "is_primary": true,
+        "language": "en"
+      }
+    ],
+    "addresses": {
+      "bill_to": {
+        "line1": null,
+        "city": "Jakarta",
+        "country_code": "ID"
+      },
+      "ship_to": {
+        "line1": null,
+        "city": "Jakarta",
+        "country_code": "ID"
+      }
+    },
+    "credit": {
+      "currency": "USD",
+      "credit_limit": 20000.0,
+      "exposure": 671.08,
+      "available_credit": 19328.92,
+      "ar_balance": 0,
+      "overdue_amount": 0,
+      "overdue_days": 0,
+      "status": "clear",
+      "hold": false
+    },
+    "blocked": "none",
+    "last_payment_at": "2026-09-12",
+    "note": "产线急用，交期敏感",
+    "created_at": "2026-06-01T09:00:00+08:00",
+    "updated_at": "2026-06-01T09:00:00+08:00"
+  }
+}

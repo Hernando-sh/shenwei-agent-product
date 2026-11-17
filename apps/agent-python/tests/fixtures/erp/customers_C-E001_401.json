@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/customers/C-E001",
+    "query": {},
+    "headers": {
+      "X-Api-Key": "wrong-key"
+    }
+  },
+  "status": 401,
+  "content_type": "application/problem+json",
+  "body": {
+    "type": "https://docs.shenwei.example/problems/unauthorized",
+    "title": "未认证",
+    "status": 401,
+    "detail": "缺少或无效的 X-Api-Key",
+    "instance": "urn:request:01M6SZ7YJ5T9PH19CFAEJHZTXY",
+    "code": "unauthorized"
+  }
+}

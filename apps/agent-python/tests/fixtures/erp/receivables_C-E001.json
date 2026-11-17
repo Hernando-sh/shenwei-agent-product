@@ -1,0 +1,38 @@
+{
+  "recorded_at": "2026-11-07T11:01:13+08:00",
+  "erp_version": "0.2.0",
+  "erp_now": "2026-09-20T10:00:00+08:00",
+  "scenario": "base",
+  "request": {
+    "method": "GET",
+    "path": "/v1/customers/C-E001/receivables",
+    "query": {}
+  },
+  "status": 200,
+  "content_type": "application/json",
+  "body": {
+    "customer_id": "C-E001",
+    "legal_name": "PT Nusantara Process Engineering",
+    "currency": "USD",
+    "ar_balance": 0,
+    "overdue_amount": 0,
+    "overdue_days": 0,
+    "credit_status": "clear",
+    "credit_limit": 20000.0,
+    "exposure": 671.08,
+    "aging": {
+      "current": 0.0,
+      "d1_30": 0.0,
+      "d31_60": 0.0,
+      "d61_90": 0.0,
+      "d90_plus": 0.0
+    },
+    "open_items": [],
+    "last_payment_at": "2026-09-12",
+    "payment_terms_code": "TT30_70",
+    "payment_terms": "T/T 30% deposit, 70% before shipment",
+    "orders_count": 7,
+    "orders_total": 2355.25,
+    "as_of": "2026-09-20T10:00:00+08:00"
+  }
+}
