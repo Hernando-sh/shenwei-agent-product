@@ -17,8 +17,10 @@ def test_t12_events_hold_actual_requests_and_pairings(erp, tmp_path):
     events, problems = read_events(sink.path)
     assert not problems
     types = [e["type"] for e in events]
+    # 2.2 起每个工具请求在校验后多一条 policy.decided（W2-AC-02 管线：请求 → 策略 → 执行）
     assert types == ["run.started", "model.request", "model.response",
-                     "tool.requested", "tool.executed", "tool.requested", "tool.executed",
+                     "tool.requested", "policy.decided", "tool.executed",
+                     "tool.requested", "policy.decided", "tool.executed",
                      "model.request", "model.response", "run.completed"]
     # 第二步的快照就是真正发给模型的 messages：含 assistant 的两个 tool_calls 与两条配对的 tool 消息
     step2 = next(e for e in events if e["type"] == "model.request" and e["step"] == 2)

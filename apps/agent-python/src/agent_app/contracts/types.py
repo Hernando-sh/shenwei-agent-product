@@ -28,6 +28,22 @@ class RunStatus(StrEnum):
     FAILED = "failed"
 
 
+class ToolKind(StrEnum):
+    """工具的动作档位（总 spec 第 3 节）。由策略表按名字给，不由来源自己宣告。"""
+    READ = "read"                      # 只读：自动放行；超时可有界重试（ADR-002）
+    WRITE_INTERNAL = "write_internal"  # 内部写（跟进记录）：询问模式确认，自动模式放行
+    WRITE_EXTERNAL = "write_external"  # 对外写（报价台账）：两种模式都确认
+
+
+@dataclass(frozen=True)
+class PolicyDecision:
+    """策略对一次工具请求的决定。action：allow / confirm / reject。reason 是程序分支依据，给人看的解释在 message。"""
+    action: str
+    kind: ToolKind | None
+    reason: str
+    message: str = ""
+
+
 @dataclass(frozen=True)
 class ToolSpec:
     """给模型看的工具说明。parameters 是 JSON Schema（object）。"""
@@ -51,7 +67,7 @@ class ToolCall:
 @dataclass(frozen=True)
 class ToolError:
     """工具失败的分类。category 是程序分支依据，code 是上游机器码，message 给模型 / 人看。"""
-    category: str  # unknown_tool | input_error | not_found | timeout | upstream_error | malformed
+    category: str  # unknown_tool | input_error | rejected | not_found | timeout | upstream_error | malformed
     code: str
     message: str
 

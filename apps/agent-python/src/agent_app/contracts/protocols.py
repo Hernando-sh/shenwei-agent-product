@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from .types import ModelResponse, ToolError, ToolSpec
+from .types import ModelResponse, PolicyDecision, ToolError, ToolSpec
 
 
 class ToolFailure(Exception):
@@ -37,8 +37,15 @@ class ErpGateway(Protocol):
 
 @runtime_checkable
 class Tool(Protocol):
+    """spec 给模型看；可选属性 source（缺省 local）只用于记录，策略不看它。"""
     spec: ToolSpec
     def run(self, args: dict, *, timeout_s: float) -> dict: ...
+
+
+@runtime_checkable
+class PolicyProtocol(Protocol):
+    """对一次已通过校验的工具请求做决定。输入只有名字、参数与当前模式；来源与来源宣告的类别不参与决定。"""
+    def decide(self, name: str, args: dict, *, mode: str) -> PolicyDecision: ...
 
 
 @runtime_checkable

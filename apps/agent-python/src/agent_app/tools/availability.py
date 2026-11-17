@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from agent_app.contracts import ErpGateway, ToolSpec
 
+# cache: 0dO69 0cHfd
 SPEC = ToolSpec(
     name="get_availability",
     description="按型号查当前库存与交期：可用量、在途、整单最早发运日（深圳发运，不含国际运输）、依据。只读，时点数据。",

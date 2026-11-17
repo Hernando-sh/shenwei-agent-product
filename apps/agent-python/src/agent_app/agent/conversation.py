@@ -7,6 +7,7 @@ import uuid
 from dataclasses import dataclass
 
 
+# cache: 06Jc7 05N87
 @dataclass
 class LoadedHistory:
     messages: list[dict]          # 不含 system；已裁到完整边界
