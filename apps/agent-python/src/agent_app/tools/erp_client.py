@@ -24,6 +24,9 @@ class ErpClient:
             raise ToolFailure("not_found", body.get("code", "not_found"), body.get("detail", "不存在"))
         if r.status_code in (401, 403):
             raise ToolFailure("rejected", body.get("code", "unauthorized"), body.get("detail", "ERP 拒绝了这次请求"))
+        if r.status_code == 422:                                   # 参数不合法（含多传字段）：是输入错误，不是上游故障
+            raise ToolFailure("input_error", body.get("code", "validation_error"),
+                              body.get("detail", "ERP 拒绝了参数") + _errors(body))
         if r.status_code == 504 or body.get("code") == "gateway_timeout":
             raise ToolFailure("timeout", body.get("code", "gateway_timeout"), body.get("detail", "ERP 网关超时"))
         if r.status_code >= 400:
@@ -63,6 +66,20 @@ class ErpClient:
         if status:
             params["status"] = status
         return self._get("/v1/quotes", params, timeout_s=timeout_s)
+
+    # ---- W2 · 2.4 算价 ----
+    def price_quote(self, customer_id: str, lines: list[dict], *, timeout_s: float) -> dict:
+        return self._get("/v1/quotes/price", {"customer_id": customer_id, "lines": lines_param(lines)}, timeout_s=timeout_s)
+
+
+def lines_param(lines: list[dict]) -> str:
+    """ERP 的行写法：X200:2,S10:4。"""
+    return ",".join(f"{l['sku']}:{int(l['qty'])}" for l in lines)
+
+
+def _errors(body: dict) -> str:
+    errs = body.get("errors") or []
+    return ("；" + "，".join(f"{e.get('field')}: {e.get('problem')}" for e in errs)) if errs else ""
 
 
 def _problem(r: httpx.Response) -> dict:

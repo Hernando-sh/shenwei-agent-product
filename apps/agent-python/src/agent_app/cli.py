@@ -19,6 +19,7 @@ from agent_app.tools import ToolExecutor, ToolRegistry
 from agent_app.tools.availability import GetAvailability
 from agent_app.tools.customer import GetCustomer, SearchCustomers
 from agent_app.tools.knowledge import SearchKnowledge
+from agent_app.tools.price_quote import PriceQuote
 from agent_app.tools.product import GetProductSpec
 from agent_app.tools.quotes import ListQuotes
 from agent_app.tools.receivables import GetReceivables
@@ -140,7 +141,8 @@ def build_registry(settings: Settings, *, scripted: bool):
         model = DashScopeClient(settings.dashscope_api_key, settings.model, settings.model_base_url)
     tools = [GetProductSpec(erp), GetAvailability(erp), GetShipment(erp),
              SearchCustomers(erp), GetCustomer(erp), GetReceivables(erp), ListQuotes(erp),   # 2.1：四个只读
-             SearchKnowledge(kb)]                                                            # 2.3：知识证据
+             SearchKnowledge(kb),                                                            # 2.3：知识证据
+             PriceQuote(erp)]                                                                # 2.4：算价出草案
     return model, ToolRegistry(tools)
 
 

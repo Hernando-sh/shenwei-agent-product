@@ -18,6 +18,7 @@ class FakeERP:
     customers: dict[str, dict] = field(default_factory=dict)      # 2.1：主数据（含 credit）
     receivables: dict[str, dict] = field(default_factory=dict)    # 2.1：按客户编号
     quotes: dict[str, dict] = field(default_factory=dict)         # 2.1：台账，按报价号；测试可直接预置
+    prices: dict[tuple[str, str], dict] = field(default_factory=dict)  # 2.4：(customer_id, "X200:2,S10:4") → 录制的算价结果
     faults: dict[str, ToolFailure] = field(default_factory=dict)   # 按方法名注入：{"get_inventory": ToolFailure(...)}
     fault_times: dict[str, int] = field(default_factory=dict)      # 注入几次；缺省一直
     calls: Counter = field(default_factory=Counter)
@@ -90,6 +91,26 @@ class FakeERP:
         rows.sort(key=lambda q: q.get("created_at") or "", reverse=True)
         return {"data": rows, "has_more": False, "next_cursor": None}
 
+    @staticmethod
+    def _lines_key(lines: list[dict]) -> str:
+        """快照键：按型号排序，和书写顺序无关。"""
+        rows = sorted(({"sku": str(l["sku"]).upper(), "qty": int(l["qty"])} for l in lines), key=lambda r: r["sku"])
+        return ",".join(f"{r['sku']}:{r['qty']}" for r in rows)
+
+    def price_quote(self, customer_id: str, lines: list[dict], *, timeout_s: float) -> dict:
+        """不实现报价规程：只回放录制的算价快照。没录过的组合明确报错，不要悄悄算。"""
+        self.calls["price_quote"] += 1
+        self._maybe_fail("price_quote")
+        if customer_id not in self.customers:
+            raise ToolFailure("not_found", "customer_not_found", f"客户 {customer_id} 不存在")
+        for l in lines:
+            if str(l["sku"]).upper() not in {k.upper() for k in self.products}:
+                raise ToolFailure("input_error", "unknown_sku", f"型号 {l['sku']} 不存在或已停售")
+        key = (customer_id, self._lines_key(lines))
+        if key not in self.prices:
+            raise ToolFailure("upstream_error", "no_fixture", f"FakeERP 没有 {key} 的算价快照：先对 ERP 录制（make fixtures）")
+        return json.loads(json.dumps(self.prices[key]))
+
     @classmethod
     def from_fixtures(cls, fixtures_dir: str | pathlib.Path) -> "FakeERP":
         """读 scripts/record_fixtures.py 录下的 *.json；只装 200 的，404 样本留给契约测试用。"""
@@ -114,7 +135,11 @@ class FakeERP:
             elif path == "/v1/quotes":
                 for q in body.get("data", []):                  # 基础种子没有报价；录到就装
                     erp.quotes[q["id"]] = q
-            # /v1/customers?q= 简表与 /v1/quotes/price 由方法现算或 2.4 装入，不在这里
+            elif path == "/v1/quotes/price":
+                q = rec["request"]["query"]
+                rows = [{"sku": p.split(":")[0], "qty": p.split(":")[1]} for p in q["lines"].split(",")]
+                erp.prices[(q["customer_id"], cls._lines_key(rows))] = body
+            # /v1/customers?q= 简表由 search_customers 从主数据现算，不在这里
         return erp
 
     @staticmethod
