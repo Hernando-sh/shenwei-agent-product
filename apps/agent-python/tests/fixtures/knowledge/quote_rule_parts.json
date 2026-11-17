@@ -1,0 +1,97 @@
+{
+  "recorded_at": "2026-11-07T11:07:47+08:00",
+  "index_version": "kb-20261024",
+  "corpus_fingerprint": "d60a1a5ee5631da1",
+  "embedding_key_configured": false,
+  "request": {
+    "method": "POST",
+    "path": "/v1/search",
+    "json": {
+      "query": "报价规程 v2026.1 第 3 条",
+      "top_k": 3,
+      "filters": {
+        "domain": [
+          "parts"
+        ]
+      }
+    }
+  },
+  "status": 200,
+  "body": {
+    "query": "报价规程 v2026.1 第 3 条",
+    "mode": "keyword",
+    "hits": [
+      {
+        "chunk_id": "D23#0006",
+        "doc_id": "D23",
+        "doc_title": "配件目录与报价算例工作簿",
+        "clause": null,
+        "locator": {
+          "kind": "xlsx",
+          "heading_path": [
+            "报价算例"
+          ]
+        },
+        "text": "</tr>\n<tr><td rowspan=\"1\" colspan=\"1\">部件费 元\n</td><td rowspan=\"1\" colspan=\"1\">45\n</td></tr>\n<tr><td rowspan=\"1\" colspan=\"1\">上门费 元\n</td><td rowspan=\"1\" colspan=\"1\">24\n</td></tr>\n<tr><td rowspan=\"1\" colspan=\"1\">报价合计 元\n</td><td rowspan=\"1\" colspan=\"1\">339\n</td></tr>\n<tr><td rowspan=\"1\" colspan=\"1\">黄色为算例输入。WO-005给出1.2小时、28公里与F-10；更换1件且已批准为本表明确假设。尚未批准时不输出可收费合计。\n</td></tr>\n<tr><td rowspan=\"1\" colspan=\"1\">工时不足1小时按1小时，超过后向上进位至0.5小时。距离只计超出20公里部分，不再乘往返系数。\n</td></tr>\n<tr><td rowspan=\"1\" colspan=\"1\">数据源：课程工单WO-005、计价规则SR-02至SR-04及配件目录。保内免费维修需要另外判断故障原因与条款。\n</td></tr>\n</table>",
+        "score": 0.01639,
+        "ranks": {
+          "vector": null,
+          "keyword": 1
+        },
+        "version": null,
+        "status": "current",
+        "applies_to": {},
+        "domain": "parts"
+      },
+      {
+        "chunk_id": "D23#0004",
+        "doc_id": "D23",
+        "doc_title": "配件目录与报价算例工作簿",
+        "clause": null,
+        "locator": {
+          "kind": "xlsx",
+          "heading_path": [
+            "报价算例"
+          ]
+        },
+        "text": "<tr><td rowspan=\"1\" colspan=\"1\">已批准更换\n</td><td rowspan=\"1\" colspan=\"1\">是\n</td><td rowspan=\"1\" colspan=\"1\">状态\n</td><td rowspan=\"1\" colspan=\"1\">明确教学假设\n</td><td rowspan=\"1\" colspan=\"1\">超出距离单价\n</td><td rowspan=\"1\" colspan=\"1\">3\n</td><td rowspan=\"1\" colspan=\"1\">元/公里\n</td></tr>\n<tr><td rowspan=\"1\" colspan=\"1\">报价性质\n</td><td rowspan=\"1\" colspan=\"1\">计算练习\n</td><td rowspan=\"1\" colspan=\"1\">不代表免费维修已获批准\n</td></tr>\n<tr><td rowspan=\"1\" colspan=\"1\">设备型号\n</td><td rowspan=\"1\" colspan=\"1\">X100\n</td></tr>\n<tr><td rowspan=\"1\" colspan=\"1\">项目\n</td><td rowspan=\"1\" colspan=\"1\">结果\n</td></tr>\n<tr><td rowspan=\"1\" colspan=",
+        "score": 0.01613,
+        "ranks": {
+          "vector": null,
+          "keyword": 2
+        },
+        "version": null,
+        "status": "current",
+        "applies_to": {},
+        "domain": "parts"
+      },
+      {
+        "chunk_id": "D11#0067",
+        "doc_id": "D11",
+        "doc_title": "配件兼容与服务计费手册",
+        "clause": null,
+        "locator": {
+          "kind": "pdf",
+          "page": 8,
+          "heading_path": [
+            "08/组合报价:先分项,再相加"
+          ]
+        },
+        "text": "工时:1.51小时向上取整到2小时,2×180=360元。部件:45×1+90×1=135元。上门:(50-20)×3=90元。合计360+135+90=585元。三项依据分开保留,后续调整一项时才知道改变来自哪里。",
+        "score": 0.01587,
+        "ranks": {
+          "vector": null,
+          "keyword": 3
+        },
+        "version": null,
+        "status": "current",
+        "applies_to": {},
+        "domain": "parts"
+      }
+    ],
+    "took_ms": 0.5,
+    "index_version": "kb-20261024",
+    "corpus_fingerprint": "d60a1a5ee5631da1",
+    "note": "没有配置 DASHSCOPE_API_KEY，已退化为只用关键词检索"
+  }
+}

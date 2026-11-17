@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-11-07T11:07:47+08:00",
+  "index_version": "kb-20261024",
+  "corpus_fingerprint": "d60a1a5ee5631da1",
+  "embedding_key_configured": false,
+  "request": {
+    "method": "POST",
+    "path": "/v1/search",
+    "json": {
+      "query": "qzxv",
+      "top_k": 3
+    }
+  },
+  "status": 200,
+  "body": {
+    "query": "qzxv",
+    "mode": "keyword",
+    "hits": [],
+    "took_ms": 1.6,
+    "index_version": "kb-20261024",
+    "corpus_fingerprint": "d60a1a5ee5631da1",
+    "note": "没有配置 DASHSCOPE_API_KEY，已退化为只用关键词检索"
+  }
+}

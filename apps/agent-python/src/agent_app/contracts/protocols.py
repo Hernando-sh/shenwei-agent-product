@@ -36,6 +36,13 @@ class ErpGateway(Protocol):
 
 
 @runtime_checkable
+class KnowledgeGateway(Protocol):
+    """知识服务访问（2.3）。返回 /v1/search 的原始响应体；失败抛 ToolFailure。生产者：KnowledgeClient、FakeKnowledge。"""
+    def search(self, query: str, *, top_k: int = 5, domain: list[str] | None = None, doc_ids: list[str] | None = None,
+               order_date: str | None = None, timeout_s: float) -> dict: ...
+
+
+@runtime_checkable
 class Tool(Protocol):
     """spec 给模型看；可选属性 source（缺省 local）只用于记录，策略不看它。"""
     spec: ToolSpec

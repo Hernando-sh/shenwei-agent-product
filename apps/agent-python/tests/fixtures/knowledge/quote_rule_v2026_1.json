@@ -1,0 +1,98 @@
+{
+  "recorded_at": "2026-11-07T11:07:47+08:00",
+  "index_version": "kb-20261024",
+  "corpus_fingerprint": "d60a1a5ee5631da1",
+  "embedding_key_configured": false,
+  "request": {
+    "method": "POST",
+    "path": "/v1/search",
+    "json": {
+      "query": "报价规程 v2026.1 第 3 条 客户等级系数",
+      "top_k": 3
+    }
+  },
+  "status": 200,
+  "body": {
+    "query": "报价规程 v2026.1 第 3 条 客户等级系数",
+    "mode": "keyword",
+    "hits": [
+      {
+        "chunk_id": "D37#p10-0",
+        "doc_id": "D37",
+        "doc_title": "深维设备售后政策（配送、退货与退款）2026 版",
+        "clause": "4.6",
+        "locator": {
+          "kind": "pdf",
+          "page": 10,
+          "heading_path": [
+            "4.6　退款时效"
+          ]
+        },
+        "text": "4.6　退款时效\n第 4.6 条　退款申请受理后 1 个工作日内进入财务处理，原路退回，一般 3 至 7 个工作日到账；实际\n到账时间以支付渠道为准。\n阶段\n含义\n对客户怎么说\n已受理\n退款系统已生成退款单号\n\"退款申请已受理，单号 RF-……\"\n财务处理中\n已进入财务流程\n\"预计 3 至 7 个工作日原路退回\"\n已到账\n支付渠道确认\n\"款项已退回，请查收\"\n不得在\"已受理\"阶段对客户说\"已经退给您了\"。审批中的退款尚未发起，只能说\"已提交主管审批\"，并告知\n预计审批时限（第 5.2 条）。",
+        "score": 0.01639,
+        "ranks": {
+          "vector": null,
+          "keyword": 1
+        },
+        "version": "2026版",
+        "status": "current",
+        "applies_to": {
+          "order_date": {
+            "from": "2026-01-01"
+          }
+        },
+        "domain": "policy"
+      },
+      {
+        "chunk_id": "D18#0000",
+        "doc_id": "D18",
+        "doc_title": "现场服务报价审批规程",
+        "clause": null,
+        "locator": {
+          "kind": "docx",
+          "heading_path": [
+            "现场服务报价审批规程"
+          ]
+        },
+        "text": "# 现场服务报价审批规程",
+        "score": 0.01613,
+        "ranks": {
+          "vector": null,
+          "keyword": 2
+        },
+        "version": null,
+        "status": "current",
+        "applies_to": {},
+        "domain": "policy"
+      },
+      {
+        "chunk_id": "D45#s08",
+        "doc_id": "D45",
+        "doc_title": "技术方案书与合同模板",
+        "clause": null,
+        "locator": {
+          "kind": "docx",
+          "heading_path": [
+            "二　技术方案书模板（Technical Proposal）",
+            "6　商务摘要 / Commercial summary"
+          ],
+          "paragraph_start": 27
+        },
+        "text": "二　技术方案书模板（Technical Proposal） / 6　商务摘要 / Commercial summary\n项目 | 来源 | 示例写法\n报价编号 | quotes.quote_id | QT-000012\n单价与合计 | quotes.lines[].unit_price_usd、quotes.total_usd | USD 311.11 / unit; total USD 622.22\n贸易术语 | 固定 | FOB Shenzhen (Incoterms 2020)\n有效期 | quotes.valid_until | Valid until 2026-10-20\n付款条件 | quotes.payment_terms（即客户主数据） | T/T 30% deposit, 70% before shipment\n折扣说明 | 不展示折扣率 | 价格已含客户等级与数量折扣；合同与方案书不单列折扣",
+        "score": 0.01587,
+        "ranks": {
+          "vector": null,
+          "keyword": 3
+        },
+        "version": null,
+        "status": "current",
+        "applies_to": {},
+        "domain": "export"
+      }
+    ],
+    "took_ms": 7.5,
+    "index_version": "kb-20261024",
+    "corpus_fingerprint": "d60a1a5ee5631da1",
+    "note": "没有配置 DASHSCOPE_API_KEY，已退化为只用关键词检索"
+  }
+}

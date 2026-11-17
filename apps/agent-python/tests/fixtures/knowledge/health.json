@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "documents": 47,
+  "chunks": 2659,
+  "vectors": true,
+  "embedding_key_configured": false,
+  "index_version": "kb-20261024",
+  "corpus_fingerprint": "d60a1a5ee5631da1"
+}

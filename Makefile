@@ -13,10 +13,11 @@ ENV_DIR  ?= $(CURDIR)/../../环境
 ERP_URL  ?= http://localhost:9100
 ERP_SVC  := shenwei-erp
 COMPOSE  := docker compose --project-directory "$(ENV_DIR)"
+KB_URL   ?= http://localhost:9200
 TEXT     ?= 查一下 X200 的规格和当前库存交期
 ARGS     ?=
 
-.PHONY: help sync test integration erp-env erp erp-stop erp-check erp-logs erp-sql erp-tables chat chat-offline replay fixtures model-samples clean
+.PHONY: help sync test integration erp-env erp erp-stop erp-check erp-logs erp-sql erp-tables chat chat-offline replay fixtures kb-fixtures model-samples clean
 
 help:
 	@echo "环境"
@@ -35,7 +36,8 @@ help:
 	@echo "  make chat-offline     离线脚本跑一轮，不需要 Key 和 ERP"
 	@echo "  make replay ID=<会话id>                       只读回放"
 	@echo "录制"
-	@echo "  make fixtures         从 ERP 9100 重录 tests/fixtures/erp/*.json"
+	@echo "  make fixtures         从 ERP 9100 重录 tests/fixtures/erp/*.json（先 POST /_admin/reset）"
+	@echo "  make kb-fixtures      从知识服务 9200 重录 tests/fixtures/knowledge/*.json"
 	@echo "  make model-samples    从真实模型重录 tests/fixtures/model/*.json"
 
 # ---- 环境 ----
@@ -121,6 +123,9 @@ replay:
 # ---- 录制 ----
 fixtures:
 	uv run --project $(APP) python scripts/record_fixtures.py --base $(ERP_URL)
+
+kb-fixtures:
+	uv run --project $(APP) python scripts/record_knowledge_fixtures.py --base $(KB_URL)
 
 model-samples:
 	uv run --project $(APP) python scripts/record_model_samples.py

@@ -7,7 +7,6 @@ from __future__ import annotations
 import time
 
 from agent_app.contracts import (EventSink, PolicyProtocol, Tool, ToolCall, ToolError, ToolFailure, ToolKind,
-# generated: 0fUa1
                                  ToolResult)
 from agent_app.guardrails import validate_args
 

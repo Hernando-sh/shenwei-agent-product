@@ -18,6 +18,7 @@ from agent_app.pricing import Price, fmt_yuan, resolve as resolve_price
 from agent_app.tools import ToolExecutor, ToolRegistry
 from agent_app.tools.availability import GetAvailability
 from agent_app.tools.customer import GetCustomer, SearchCustomers
+from agent_app.tools.knowledge import SearchKnowledge
 from agent_app.tools.product import GetProductSpec
 from agent_app.tools.quotes import ListQuotes
 from agent_app.tools.receivables import GetReceivables
@@ -122,9 +123,10 @@ class TeeSink:
 def build_registry(settings: Settings, *, scripted: bool):
     if scripted:
         import pathlib
-        from agent_app.doubles import FakeERP, ScriptedModel, final, tool_calls
-        fixtures = pathlib.Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "erp"
-        erp = FakeERP.from_fixtures(fixtures)
+        from agent_app.doubles import FakeERP, FakeKnowledge, ScriptedModel, final, tool_calls
+        fixtures = pathlib.Path(__file__).resolve().parents[2] / "tests" / "fixtures"
+        erp = FakeERP.from_fixtures(fixtures / "erp")
+        kb = FakeKnowledge.from_fixtures(fixtures / "knowledge")
         model = ScriptedModel([
             tool_calls(("get_product_spec", {"model": "X200"}), ("get_availability", {"model": "X200", "qty": 1})),
             final("（离线脚本）X200 离心输送泵，260 W，最大流量 5 L/min；可用 5 台，最早 2026-09-23 深圳发运。"),
@@ -132,10 +134,13 @@ def build_registry(settings: Settings, *, scripted: bool):
     else:
         from agent_app.llm import DashScopeClient
         from agent_app.tools.erp_client import ErpClient
+        from agent_app.tools.knowledge_client import KnowledgeClient
         erp = ErpClient(settings.erp_base_url, settings.erp_api_key)
+        kb = KnowledgeClient(settings.kb_base_url)
         model = DashScopeClient(settings.dashscope_api_key, settings.model, settings.model_base_url)
     tools = [GetProductSpec(erp), GetAvailability(erp), GetShipment(erp),
-             SearchCustomers(erp), GetCustomer(erp), GetReceivables(erp), ListQuotes(erp)]   # 2.1：四个只读
+             SearchCustomers(erp), GetCustomer(erp), GetReceivables(erp), ListQuotes(erp),   # 2.1：四个只读
+             SearchKnowledge(kb)]                                                            # 2.3：知识证据
     return model, ToolRegistry(tools)
 
 
