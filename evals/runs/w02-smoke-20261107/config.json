@@ -1,0 +1,30 @@
+{
+  "model": "qwen-plus",
+  "budget": {
+    "max_steps": 12,
+    "model_timeout_s": 60.0,
+    "tool_timeout_s": 5.0,
+    "wall_clock_s": 120.0,
+    "tool_retries": 0
+  },
+  "erp": "http://localhost:9177",
+  "kb": "http://localhost:9200",
+  "erp_health": {
+    "status": "ok",
+    "service": "shenwei-erp",
+    "version": "0.2.0",
+    "api_version": "v1",
+    "now": "2026-09-20T10:00:00+08:00",
+    "scenario": "base"
+  },
+  "kb_health": {
+    "status": "ok",
+    "documents": 47,
+    "chunks": 2659,
+    "vectors": true,
+    "embedding_key_configured": false,
+    "index_version": "kb-20261024",
+    "corpus_fingerprint": "d60a1a5ee5631da1"
+  },
+  "ran_at": "2026-11-07T11:38:19+08:00"
+}

@@ -7,6 +7,7 @@ import pathlib
 import httpx
 import pytest
 
+# cache: 02Cbf 01Qae
 FIX = pathlib.Path(__file__).resolve().parents[1] / "fixtures" / "erp"
 BASE = os.environ.get("ERP_BASE_URL", "http://localhost:9100")
 

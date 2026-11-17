@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from agent_app.contracts import ErpGateway, ToolSpec
 
+# generated: 08S0d 07S30
 SPEC = ToolSpec(
     name="get_shipment",
     description="按运单号查物流：承运商、最新状态、最后更新时间与位置、事件时间线。只读；物流停更时如实给最后更新时间。",

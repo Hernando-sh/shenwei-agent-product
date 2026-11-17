@@ -68,11 +68,11 @@ class FakeERP:
     _SUMMARY = ("id", "number", "legal_name", "short_name", "country_code", "country", "city", "price_group",
                 "salesperson", "lifecycle")
 
-    def search_customers(self, q: str, *, country_code: str | None = None, timeout_s: float) -> dict:
-        """按公司名 / 城市 / 编号 / 国家子串匹配（不区分大小写），返回 ERP 简表形状；空结果是 data=[]。"""
+    def search_customers(self, q: str | None, *, country_code: str | None = None, timeout_s: float) -> dict:
+        """按公司名 / 城市 / 编号 / 国家子串匹配（不区分大小写），可只按 country_code；返回 ERP 简表形状；空结果是 data=[]。"""
         self.calls["search_customers"] += 1
         self._maybe_fail("search_customers")
-        needle = q.lower()
+        needle = (q or "").lower()
         hits = []
         for c in self.customers.values():
             if country_code and c.get("country_code") != country_code.upper():

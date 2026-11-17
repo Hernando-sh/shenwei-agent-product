@@ -1,4 +1,5 @@
-"""发布前检查：配置、测试、敏感信息、文档。用法：uv run --project apps/agent-python python scripts/release_check.py"""
+"""发布前检查：配置、测试、敏感信息、文档。用法：uv run --project apps/agent-python python scripts/release_check.py [--week w2]"""
+import argparse
 import pathlib
 import re
 import subprocess
@@ -12,7 +13,16 @@ def run(cmd, cwd=ROOT):
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
 
 
+WEEKS = {
+    "w1": {"release": "docs/releases/w1.md", "smoke": "w01-smoke-*", "tags": ["w1.4", "w1.5", "w1.6", "w1.7", "w1.8"]},
+    "w2": {"release": "docs/releases/w2.md", "smoke": "w02-smoke-*", "tags": [f"w2.{k}" for k in range(1, 8)]},
+}
+
+
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--week", default="w2", choices=sorted(WEEKS))
+    week = WEEKS[ap.parse_args().week]
     ok = True
 
     def check(name, passed, detail=""):
@@ -34,11 +44,12 @@ def main() -> int:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     for key in ["uv sync", "pytest", "agent-cli"]:
         check(f"README 含启动命令 {key}", key in readme)
-    check("Release 说明存在", (ROOT / "docs/releases/w1.md").exists())
-    smoke = sorted((ROOT / "evals/runs").glob("w01-smoke-*/results.jsonl"))
+    check("Release 说明存在", (ROOT / week["release"]).exists())
+    smoke = sorted((ROOT / "evals/runs").glob(week["smoke"] + "/results.jsonl"))
     check("冒烟记录存在", bool(smoke), str(smoke[-1].relative_to(ROOT)) if smoke else "")
-    tags = run(["git", "tag", "--list", "w1*"]).stdout.split()
-    check("本周 tag 齐全", all(t in tags for t in ["w1.4", "w1.5", "w1.6", "w1.7", "w1.8"]), " ".join(tags))
+    tags = run(["git", "tag", "--list"]).stdout.split()
+    check("本周 tag 齐全", all(t in tags for t in week["tags"]), " ".join(t for t in tags if t.startswith(week["tags"][0][:2])))
+    check("运行时依赖只有 httpx 与 mcp", set(re.findall(r'^\s*"([a-zA-Z0-9_-]+)[>=<\[]', (APP / "pyproject.toml").read_text(), re.M)) <= {"httpx", "mcp"})
     print("\n发布检查通过" if ok else "\n发布检查未通过")
     return 0 if ok else 1
 

@@ -17,7 +17,7 @@ KB_URL   ?= http://localhost:9200
 TEXT     ?= 查一下 X200 的规格和当前库存交期
 ARGS     ?=
 
-.PHONY: help sync test integration erp-env erp erp-stop erp-check erp-logs erp-sql erp-tables chat chat-offline replay fixtures kb-fixtures model-samples clean
+.PHONY: help sync test integration erp-env erp erp-stop erp-check erp-logs erp-sql erp-tables chat chat-offline replay fixtures kb-fixtures model-samples smoke-w2 clean
 
 help:
 	@echo "环境"
@@ -41,6 +41,8 @@ help:
 	@echo "  make fixtures         从 ERP 9100 重录 tests/fixtures/erp/*.json（先 POST /_admin/reset）"
 	@echo "  make kb-fixtures      从知识服务 9200 重录 tests/fixtures/knowledge/*.json"
 	@echo "  make model-samples    从真实模型重录 tests/fixtures/model/*.json"
+	@echo "冒烟"
+	@echo "  make smoke-w2 ERP_URL=http://localhost:9177   十条真实模型案例（只对私有 ERP：会重置它的账本）"
 
 # ---- 环境 ----
 sync:
@@ -131,6 +133,9 @@ kb-fixtures:
 
 model-samples:
 	uv run --project $(APP) python scripts/record_model_samples.py
+
+smoke-w2:
+	ERP_BASE_URL=$(ERP_URL) uv run --project $(APP) python scripts/smoke_w2.py
 
 clean:
 	rm -rf $(APP)/.pytest_cache

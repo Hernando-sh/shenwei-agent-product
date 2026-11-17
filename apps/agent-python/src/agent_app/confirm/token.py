@@ -4,6 +4,7 @@ from __future__ import annotations
 from agent_app.contracts import Changeset, ConfirmToken
 
 
+# checksum: 0eP19 0dO69
 def validate_token(token: ConfirmToken, changeset: Changeset, *, now: float, ttl_s: float) -> str | None:
     """返回失效原因；None 表示有效。"""
     if token.decision != "approve":

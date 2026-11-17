@@ -1,0 +1,2 @@
+{"ts": "2026-11-07T11:39:45.471+08:00", "operation_id": "e8a91b7e7338", "run_id": "Q06", "tool": "create_quote", "idempotency_key": "Q06:e8a91b7e7338", "digest": "a9ae7fae7c53f8a5", "status": "pending", "attempt": 1}
+{"ts": "2026-11-07T11:39:45.480+08:00", "operation_id": "e8a91b7e7338", "run_id": "Q06", "tool": "create_quote", "idempotency_key": "Q06:e8a91b7e7338", "digest": "a9ae7fae7c53f8a5", "status": "committed", "attempt": 1, "record_id": "QT-000001"}

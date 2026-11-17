@@ -49,8 +49,10 @@ class ErpClient:
         return self._get(f"/v1/orders/{order_id}", timeout_s=timeout_s)
 
     # ---- W2 · 2.1 客户 / 回款 / 台账（只读）----
-    def search_customers(self, q: str, *, country_code: str | None = None, timeout_s: float) -> dict:
-        params = {"q": q}
+    def search_customers(self, q: str | None, *, country_code: str | None = None, timeout_s: float) -> dict:
+        params = {}
+        if q:
+            params["q"] = q
         if country_code:
             params["country_code"] = country_code
         return self._get("/v1/customers", params, timeout_s=timeout_s)

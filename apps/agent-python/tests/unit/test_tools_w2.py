@@ -41,6 +41,12 @@ def test_t16_search_customers_returns_candidates_from_fixture(erp):
     assert erp.calls["search_customers"] == 1
 
 
+def test_t16_search_by_country_code_only_lists_that_country(erp):
+    """冒烟 Q04 的教训：业务员说「杜塞尔多夫」，ERP 存的是 Düsseldorf；按国家列候选不依赖拼写。"""
+    r = _executor(erp).execute(_call("search_customers", {"country_code": "DE"}), timeout_s=1)
+    assert r.ok and [c["id"] for c in r.data["customers"]] == ["C-E003"] and r.data["query"] is None
+
+
 def test_t16_search_customers_filters_by_country_code(erp):
     r = _executor(erp).execute(_call("search_customers", {"q": "Rheinwerk", "country_code": "DE"}), timeout_s=1)
     assert r.ok and [c["id"] for c in r.data["customers"]] == ["C-E003"]
@@ -134,7 +140,7 @@ def test_t16_server_error_is_upstream_error():
 
 # ---- 输入边界：空参数不触发 ERP ----
 @pytest.mark.parametrize("name, args", [
-    ("search_customers", {}), ("search_customers", {"q": " "}),
+    ("search_customers", {}), ("search_customers", {"q": " "}), ("search_customers", {"country_code": ""}),
     ("get_customer", {"customer_id": ""}), ("get_receivables", {}), ("list_quotes", {"customer_id": 1}),
 ])
 def test_t16_bad_input_never_reaches_erp(erp, name, args):
@@ -152,6 +158,7 @@ def test_t16_client_sends_documented_paths_and_params():
         return httpx.Response(200, json={"data": [], "has_more": False, "next_cursor": None})
     c = _erp_with(handler)
     c.search_customers("Jakarta", country_code="ID", timeout_s=1)
+    c.search_customers(None, country_code="DE", timeout_s=1)
     c.list_quotes("C-E001", timeout_s=1)
-    assert seen == [("/v1/customers", {"q": "Jakarta", "country_code": "ID"}),
+    assert seen == [("/v1/customers", {"q": "Jakarta", "country_code": "ID"}), ("/v1/customers", {"country_code": "DE"}),
                     ("/v1/quotes", {"customer_id": "C-E001"})]

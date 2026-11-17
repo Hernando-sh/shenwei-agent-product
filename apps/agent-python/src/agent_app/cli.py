@@ -23,6 +23,7 @@ from agent_app.tools.availability import GetAvailability
 from agent_app.tools.create_quote import CreateQuote
 from agent_app.tools.customer import GetCustomer, SearchCustomers
 from agent_app.tools.knowledge import SearchKnowledge
+from agent_app.tools.order import GetOrder
 from agent_app.tools.price_quote import PriceQuote
 from agent_app.tools.product import GetProductSpec
 from agent_app.tools.quotes import ListQuotes
@@ -192,7 +193,7 @@ def build_registry(settings: Settings, *, scripted: bool, text: str = "", source
         _, read_tools = mcp_source(settings)                                                 # 2.7：两个只读换成 MCP 来源
     else:
         read_tools = [GetProductSpec(erp), GetAvailability(erp)]
-    tools = [*read_tools, GetShipment(erp),
+    tools = [*read_tools, GetShipment(erp), GetOrder(erp),                                   # W1 + 1.9 作业参考实现
              SearchCustomers(erp), GetCustomer(erp), GetReceivables(erp), ListQuotes(erp),   # 2.1：四个只读
              SearchKnowledge(kb),                                                            # 2.3：知识证据
              PriceQuote(erp),                                                                # 2.4：算价出草案
@@ -302,7 +303,7 @@ def main(argv: list[str] | None = None) -> int:
     chat.add_argument("--resume", metavar="CONVERSATION_ID", help="继续一个会话：新 Run + 已保存历史")
     chat.add_argument("--show-request", action="store_true", help="打印每一步真正发给模型的 messages")
     chat.add_argument("-v", "--verbose", action="store_true", help="完整展开工具返回结果与模型文本（默认截断）")
-    chat.add_argument("--max-steps", type=int, default=8, help="模型请求次数上限（W2 周 spec：8）")
+    chat.add_argument("--max-steps", type=int, default=12, help="模型请求次数上限（W2 周 spec §5：12，冒烟复核后从 8 调高）")
     chat.add_argument("--mode", choices=["ask", "auto"], default="ask", help="询问 / 自动模式（报价台账写入两种模式都确认）")
     chat.add_argument("--actor", default="sales:zhou", help="终端确认人，记进确认事件")
     chat.add_argument("--tool-retries", type=int, default=0, help="只读工具超时的有界重试次数")

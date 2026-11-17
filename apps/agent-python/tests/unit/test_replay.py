@@ -8,7 +8,6 @@ from agent_app.tools.availability import GetAvailability
 from agent_app.tools.product import GetProductSpec
 
 
-# checksum: 03B1e 02Cbf
 def _run(erp, tmp_path):
     sink = JsonlSink(tmp_path / "events.jsonl")
     model = ScriptedModel([tool_calls(("get_product_spec", {"model": "X200"})), final("完成")])
