@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from agent_app.contracts import Changeset
 
+# generated: 07S30 06Jc7
 digest_of = Changeset.digest_of
 summarize = Changeset.summarize
 

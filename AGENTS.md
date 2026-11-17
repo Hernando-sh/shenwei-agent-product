@@ -6,9 +6,9 @@
 
 ## 环境（来源：版本冻结 spike-a-pass、fixture 规则）
 
-- Python 3.12 + uv，不用 pip；依赖改动只经 `apps/agent-python/pyproject.toml` 与 `uv.lock`。
+- Python 3.12 + uv，不用 pip；依赖改动只经 `apps/agent-python/pyproject.toml` 与 `uv.lock`。运行时依赖只有 `httpx`（W1）与 `mcp`（2.7，MCP 能力来源的客户端与 `apps/mcp-erp-readonly` 服务；版本 1.28 由周 spec w02-quote §8 冻结）。
 - 单元测试：`cd apps/agent-python && uv run pytest tests/unit -q`。离线，用 FakeERP + `tests/fixtures/`。
-- 集成测试：`uv run pytest tests/integration -q`，需要模拟 ERP `http://localhost:9100`，不可达时自动跳过。
+- 集成测试：`uv run pytest tests/integration -q`，需要模拟 ERP `http://localhost:9100`（`ERP_BASE_URL` 可改）与知识服务 9200，不可达时自动跳过；写契约测试只在设了 `ERP_WRITE_BASE_URL`（私有 ERP 实例）时跑，不要指向共享实例。
 - CLI：`uv run agent-cli --help`。真实模型需要 `.env` 里的 `DASHSCOPE_API_KEY`。
 
 ## 开发流程（来源：1.2 两层 spec、1.7 TDD）

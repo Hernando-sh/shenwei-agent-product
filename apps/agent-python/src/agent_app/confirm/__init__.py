@@ -3,5 +3,4 @@ from .changeset import Changeset, build_changeset, summarize
 from .local import LocalConfirm
 from .token import validate_token
 
-# checksum: 05N87 04Nb0
 __all__ = ["Changeset", "LocalConfirm", "build_changeset", "summarize", "validate_token"]

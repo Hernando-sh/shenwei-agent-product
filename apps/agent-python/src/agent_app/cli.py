@@ -152,7 +152,17 @@ class TeeSink:
             err(yellow("■ 预算耗尽：") + data["kind"])
 
 
-def build_registry(settings: Settings, *, scripted: bool, text: str = ""):
+def mcp_source(settings: Settings):
+    """2.7：起 apps/mcp-erp-readonly 的 stdio 服务，拿它宣告的两个只读工具。策略仍按名字查表。"""
+    import pathlib
+    from agent_app.tools.mcp_source import McpToolSource, StdioMcpClient
+    server = pathlib.Path(__file__).resolve().parents[4] / "apps" / "mcp-erp-readonly" / "server.py"
+    client = StdioMcpClient(sys.executable, [str(server)], name="erp-readonly",
+                            env={"ERP_BASE_URL": settings.erp_base_url, "ERP_API_KEY": settings.erp_api_key})
+    return client, McpToolSource(client).tools(only=["get_product_spec", "get_availability"])
+
+
+def build_registry(settings: Settings, *, scripted: bool, text: str = "", source: str = "local"):
     if scripted:
         import pathlib
         from agent_app.doubles import FakeERP, FakeKnowledge, ScriptedModel, final, tool_calls
@@ -178,7 +188,11 @@ def build_registry(settings: Settings, *, scripted: bool, text: str = ""):
         erp = ErpClient(settings.erp_base_url, settings.erp_api_key)
         kb = KnowledgeClient(settings.kb_base_url)
         model = DashScopeClient(settings.dashscope_api_key, settings.model, settings.model_base_url)
-    tools = [GetProductSpec(erp), GetAvailability(erp), GetShipment(erp),
+    if source == "mcp" and not scripted:
+        _, read_tools = mcp_source(settings)                                                 # 2.7：两个只读换成 MCP 来源
+    else:
+        read_tools = [GetProductSpec(erp), GetAvailability(erp)]
+    tools = [*read_tools, GetShipment(erp),
              SearchCustomers(erp), GetCustomer(erp), GetReceivables(erp), ListQuotes(erp),   # 2.1：四个只读
              SearchKnowledge(kb),                                                            # 2.3：知识证据
              PriceQuote(erp),                                                                # 2.4：算价出草案
@@ -201,7 +215,7 @@ def cmd_chat(a) -> int:
         cid = store.new_id()
     price = resolve_price(settings.model, settings.price_input_per_1k, settings.price_output_per_1k)
     sink = TeeSink(JsonlSink(store.events_path(cid)), show_request=a.show_request, verbose=a.verbose, price=price)
-    model, registry = build_registry(settings, scripted=a.scripted, text=a.text)
+    model, registry = build_registry(settings, scripted=a.scripted, text=a.text, source=a.source)
     budget = Budget(max_steps=a.max_steps, tool_retries=a.tool_retries, tool_timeout_s=a.tool_timeout)
     runtime = ToolRuntime(registry, policy=Policy(), sink=sink, mode=a.mode, confirmer=LocalConfirm(a.actor),
                           ledger=JsonlLedger(store.dir(cid) / "operations.jsonl"))
@@ -294,6 +308,8 @@ def main(argv: list[str] | None = None) -> int:
     chat.add_argument("--tool-retries", type=int, default=0, help="只读工具超时的有界重试次数")
     chat.add_argument("--tool-timeout", type=float, default=5.0)
     chat.add_argument("--scripted", action="store_true", help="用 ScriptedModel + FakeERP 离线跑")
+    chat.add_argument("--source", choices=["local", "mcp"], default="local",
+                      help="规格 / 库存两个只读工具的来源：本地 ERP 客户端，或 apps/mcp-erp-readonly 的 MCP 服务（stdio）")
     rp = sub.add_parser("replay", help="只读回放一个会话的事件")
     rp.add_argument("conversation_id")
     a = ap.parse_args(argv)
