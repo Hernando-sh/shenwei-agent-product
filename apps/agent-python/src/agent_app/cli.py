@@ -11,11 +11,13 @@ import sys
 from agent_app.agent import AgentLoop
 from agent_app.agent.conversation import ConversationStore
 from agent_app.agent.replay import replay
+from agent_app.confirm import LocalConfirm
 from agent_app.config import Settings
 from agent_app.contracts import Budget, Usage
 from agent_app.observability import JsonlSink
 from agent_app.pricing import Price, fmt_yuan, resolve as resolve_price
-from agent_app.tools import ToolExecutor, ToolRegistry
+from agent_app.policy import Policy
+from agent_app.tools import ToolRegistry, ToolRuntime
 from agent_app.tools.availability import GetAvailability
 from agent_app.tools.customer import GetCustomer, SearchCustomers
 from agent_app.tools.knowledge import SearchKnowledge
@@ -115,6 +117,24 @@ class TeeSink:
                 err(indent_json(body) if self.verbose else f"        {dim(clip(json.dumps(body, ensure_ascii=False), 200))}")
             elif data.get("message"):
                 err(f"        {dim(data['message'])}")
+        elif event_type == "policy.decided":
+            if self.verbose or data["action"] != "allow":
+                tag = {"allow": green("放行"), "confirm": yellow("需确认"), "reject": red("策略拒绝")}[data["action"]]
+                err(f"    {dim('⚖')} {data['name']:<{w}} {tag} {dim(f'{data['kind']} · {data['mode']} · {data['source']}')}")
+        elif event_type == "changeset.created":
+            err(f"    {yellow('▣ 变更集')} {data['summary']}  {dim('op=' + data['operation_id'] + ' digest=' + data['digest'])}")
+        elif event_type == "confirmation.approved":
+            err(f"    {green('✓ 已确认')} {dim(data['actor'] or '')}")
+        elif event_type == "confirmation.rejected":
+            err(f"    {red('✗ 已拒绝')} {dim(data.get('note') or '')}")
+        elif event_type == "confirmation.amended":
+            err(f"    {yellow('✎ 改参数')} {json.dumps(data['amended_args'], ensure_ascii=False)}")
+        elif event_type == "confirmation.invalid":
+            err(f"    {red('✗ 确认无效')} {data['reason']}")
+        elif event_type == "mode.changed":
+            err(f"    {dim('模式')} {data['from']} → {bold(data['to'])}  {dim(data['by'])}")
+        elif event_type == "run.outcome":
+            err(f"    {bold('业务结果')} {data['outcome']}  {dim(data.get('detail') or '')}")
         elif event_type == "model.error":
             err(red("✗ 模型调用失败：") + f"{data['category']} {data.get('status') or ''} {data['message']}")
         elif event_type == "budget.exhausted":
@@ -163,7 +183,8 @@ def cmd_chat(a) -> int:
     sink = TeeSink(JsonlSink(store.events_path(cid)), show_request=a.show_request, verbose=a.verbose, price=price)
     model, registry = build_registry(settings, scripted=a.scripted)
     budget = Budget(max_steps=a.max_steps, tool_retries=a.tool_retries, tool_timeout_s=a.tool_timeout)
-    loop = AgentLoop(model, ToolExecutor(registry, sink=sink), registry.specs(), sink=sink, budget=budget)
+    runtime = ToolRuntime(registry, policy=Policy(), sink=sink, mode=a.mode, confirmer=LocalConfirm(a.actor))
+    loop = AgentLoop(model, runtime, registry.specs(), sink=sink, budget=budget)
     result = loop.run(a.text, history=history)
     store.save(cid, result.messages)
     ok = result.status == "completed"
@@ -239,14 +260,16 @@ def cmd_replay(a) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="agent-cli", description="深维工作台 · W1")
+    ap = argparse.ArgumentParser(prog="agent-cli", description="深维工作台 · W2")
     sub = ap.add_subparsers(dest="cmd")
     chat = sub.add_parser("chat", help="与 agent 对话一轮")
     chat.add_argument("text")
     chat.add_argument("--resume", metavar="CONVERSATION_ID", help="继续一个会话：新 Run + 已保存历史")
     chat.add_argument("--show-request", action="store_true", help="打印每一步真正发给模型的 messages")
     chat.add_argument("-v", "--verbose", action="store_true", help="完整展开工具返回结果与模型文本（默认截断）")
-    chat.add_argument("--max-steps", type=int, default=6)
+    chat.add_argument("--max-steps", type=int, default=8, help="模型请求次数上限（W2 周 spec：8）")
+    chat.add_argument("--mode", choices=["ask", "auto"], default="ask", help="询问 / 自动模式（报价台账写入两种模式都确认）")
+    chat.add_argument("--actor", default="sales:zhou", help="终端确认人，记进确认事件")
     chat.add_argument("--tool-retries", type=int, default=0, help="只读工具超时的有界重试次数")
     chat.add_argument("--tool-timeout", type=float, default=5.0)
     chat.add_argument("--scripted", action="store_true", help="用 ScriptedModel + FakeERP 离线跑")

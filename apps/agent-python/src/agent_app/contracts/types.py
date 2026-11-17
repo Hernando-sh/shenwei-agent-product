@@ -2,7 +2,9 @@
 这样在事件快照里看到的就是真正发给模型的东西。"""
 from __future__ import annotations
 
+import hashlib
 import json
+import uuid
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -42,6 +44,64 @@ class PolicyDecision:
     kind: ToolKind | None
     reason: str
     message: str = ""
+
+
+@dataclass(frozen=True)
+class Changeset:
+    """一次写动作在执行前的样子：工具、档位、校验后的参数、摘要。确认绑定 digest；写请求的幂等键用 operation_id。
+    digest 只由 tool + 参数算出（和 run / call 无关）；operation_id 每个变更集唯一。"""
+    operation_id: str
+    run_id: str | None
+    call_id: str
+    tool: str
+    kind: ToolKind | str
+    args: dict
+    digest: str
+    summary: str
+    created_at: float            # 真实时钟（time.time）
+    requested_by: str            # agent:<run_id>
+    version: int = 1
+
+    def to_event(self) -> dict:
+        return {"operation_id": self.operation_id, "digest": self.digest, "tool": self.tool, "kind": self.kind,
+                "args": self.args, "summary": self.summary, "requested_by": self.requested_by, "version": self.version}
+
+    @staticmethod
+    def digest_of(tool: str, args: dict) -> str:
+        payload = json.dumps({"tool": tool, "args": args}, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+    @staticmethod
+    def summarize(tool: str, kind: str, args: dict) -> str:
+        """给操作者看的一行摘要：工具 + 关键参数。不解释业务，不替业务员拟话。"""
+        parts = []
+        for k, v in args.items():
+            if k == "lines" and isinstance(v, list):
+                parts.append("lines=" + ", ".join(f"{l.get('sku')}×{l.get('qty')}" for l in v))
+            elif isinstance(v, str) and len(v) > 60:
+                parts.append(f"{k}={v[:57]}…")
+            else:
+                parts.append(f"{k}={json.dumps(v, ensure_ascii=False)}")
+        return f"{tool}（{kind}）" + (" · " + " · ".join(parts) if parts else "")
+
+    @classmethod
+    def build(cls, *, run_id: str | None, call_id: str, tool: str, kind, args: dict, now: float) -> "Changeset":
+        return cls(operation_id=uuid.uuid4().hex[:12], run_id=run_id, call_id=call_id, tool=tool, kind=kind,
+                   args=json.loads(json.dumps(args)), digest=cls.digest_of(tool, args),
+                   summary=cls.summarize(tool, str(kind), args), created_at=now, requested_by=f"agent:{run_id or '-'}")
+
+
+@dataclass(frozen=True)
+class ConfirmToken:
+    """操作者对一个变更集的决定。decision：approve / reject / amend / none（没有拿到决定：EOF、超时）。
+    approve 只在 operation_id 与 digest 都对、且在有效期内才算数（W2-AC-07）。"""
+    decision: str
+    operation_id: str | None
+    digest: str | None
+    decided_at: float | None
+    actor: str | None
+    amended_args: dict | None = None
+    note: str | None = None
 
 
 @dataclass(frozen=True)

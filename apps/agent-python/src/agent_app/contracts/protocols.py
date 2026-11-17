@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from .types import ModelResponse, PolicyDecision, ToolError, ToolSpec
+from .types import Changeset, ConfirmToken, ModelResponse, PolicyDecision, ToolError, ToolSpec
 
 
 class ToolFailure(Exception):
@@ -55,6 +55,12 @@ class Tool(Protocol):
 class PolicyProtocol(Protocol):
     """对一次已通过校验的工具请求做决定。输入只有名字、参数与当前模式；来源与来源宣告的类别不参与决定。"""
     def decide(self, name: str, args: dict, *, mode: str) -> PolicyDecision: ...
+
+
+@runtime_checkable
+class ConfirmationAdapter(Protocol):
+    """把变更集交给操作者、拿回决定。2.5 本地终端同步问；W5 换成 Java 确认服务，管线不变（ADR-005）。"""
+    def request(self, changeset: Changeset, *, ttl_s: float) -> ConfirmToken: ...
 
 
 @runtime_checkable
