@@ -2,9 +2,9 @@
 from .types import (Budget, Changeset, ConfirmToken, ModelResponse, Operation, PolicyDecision, ResponseKind, RunResult,
                     RunStatus, StopReason, ToolCall, ToolError, ToolKind, ToolResult, ToolSpec, Usage)
 from .protocols import (ConfirmationAdapter, ErpGateway, EventSink, KnowledgeGateway, ModelClient, OperationLedger,
-                        PolicyProtocol, Tool, ToolFailure, WriteTool)
+                        PolicyProtocol, ScrmGateway, Tool, ToolFailure, WriteTool)
 
 __all__ = ["Budget", "Changeset", "ConfirmToken", "ModelResponse", "Operation", "PolicyDecision", "ResponseKind",
            "RunResult", "RunStatus", "StopReason", "ToolCall", "ToolError", "ToolKind", "ToolResult", "ToolSpec", "Usage",
-           "ConfirmationAdapter", "ErpGateway", "EventSink", "KnowledgeGateway", "ModelClient", "OperationLedger",
+           "ConfirmationAdapter", "ErpGateway", "EventSink", "KnowledgeGateway", "ModelClient", "OperationLedger", "ScrmGateway",
            "PolicyProtocol", "Tool", "ToolFailure", "WriteTool"]

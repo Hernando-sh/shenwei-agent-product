@@ -1,0 +1,2 @@
+{"ts": "2026-11-07T11:54:23.114+08:00", "operation_id": "0336bb2a29de", "run_id": "29eb0cfb77bf", "tool": "scrm_write_followup", "idempotency_key": "29eb0cfb77bf:0336bb2a29de", "digest": "7d6994e9aa111df0", "status": "pending", "attempt": 1}
+{"ts": "2026-11-07T11:54:23.146+08:00", "operation_id": "0336bb2a29de", "run_id": "29eb0cfb77bf", "tool": "scrm_write_followup", "idempotency_key": "29eb0cfb77bf:0336bb2a29de", "digest": "7d6994e9aa111df0", "status": "committed", "attempt": 1, "record_id": "FU-000012"}

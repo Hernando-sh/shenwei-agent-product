@@ -1,0 +1,50 @@
+[
+ {
+  "role": "user",
+  "content": "给雅加达客户记一条跟进：已出 2 台 X200 的报价 QT-000001，等客户确认。"
+ },
+ {
+  "role": "assistant",
+  "content": "我需要先找到雅加达的客户编号，然后才能记录跟进。\n\n",
+  "tool_calls": [
+   {
+    "id": "call_9d07cab925414369a3707b",
+    "type": "function",
+    "function": {
+     "name": "search_customers",
+     "arguments": "{\"q\": \"Jakarta\"}"
+    }
+   }
+  ]
+ },
+ {
+  "role": "tool",
+  "tool_call_id": "call_9d07cab925414369a3707b",
+  "name": "search_customers",
+  "content": "{\"ok\": true, \"data\": {\"query\": \"Jakarta\", \"country_code\": null, \"count\": 1, \"customers\": [{\"id\": \"C-E001\", \"legal_name\": \"PT Nusantara Process Engineering\", \"short_name\": \"PT Nusantara\", \"city\": \"Jakarta\", \"country_code\": \"ID\", \"country\": \"Indonesia\", \"price_group\": \"B\", \"salesperson\": \"sales:zhou\", \"lifecycle\": \"active\"}], \"has_more\": false}}"
+ },
+ {
+  "role": "assistant",
+  "content": "已找到雅加达客户：PT Nusantara Process Engineering（编号 C-E001）。现在为您记录跟进：\n\n",
+  "tool_calls": [
+   {
+    "id": "call_5f592eebc4624f01ba332c",
+    "type": "function",
+    "function": {
+     "name": "scrm_write_followup",
+     "arguments": "{\"customer_id\": \"C-E001\", \"body\": \"已出 2 台 X200 的报价 QT-000001，等客户确认。\"}"
+    }
+   }
+  ]
+ },
+ {
+  "role": "tool",
+  "tool_call_id": "call_5f592eebc4624f01ba332c",
+  "name": "scrm_write_followup",
+  "content": "{\"ok\": true, \"data\": {\"outcome\": \"saved\", \"id\": \"FU-000012\", \"followup_id\": \"FU-000012\", \"customer_id\": \"C-E001\", \"type\": \"note\", \"occurred_at\": \"2026-09-20T10:00:00+08:00\", \"owner\": \"sales:zhou\", \"next_action_at\": null, \"body\": \"已出 2 台 X200 的报价 QT-000001，等客户确认。\", \"source\": \"agent\", \"run_id\": \"29eb0cfb77bf\", \"idempotent_replay\": false, \"recorded\": true}}"
+ },
+ {
+  "role": "assistant",
+  "content": "已为雅加达客户 PT Nusantara Process Engineering（C-E001）记录跟进：  \n「已出 2 台 X200 的报价 QT-000001，等客户确认。」  \n跟进编号：FU-000012。"
+ }
+]

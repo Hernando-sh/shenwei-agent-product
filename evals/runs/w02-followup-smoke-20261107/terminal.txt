@@ -1,0 +1,75 @@
+────────────────────────────────────────────────────────
+▶ 第 1 步  → 模型 · 2 条消息
+◀ 模型   tool_calls  请求 search_customers
+    生成 我需要先找到雅加达的客户编号，然后才能记录跟进。  
+    用量 输入 2877 · 输出 37 · 合计 2914 tokens  ≈ ¥0.0024
+    → search_customers   {"q": "Jakarta"}  #a3707b
+    ⚖ search_customers   放行 read · ask · local
+    ← search_customers   ok  34 ms
+        {
+         "query": "Jakarta",
+         "country_code": null,
+         "count": 1,
+         "customers": [
+          {
+           "id": "C-E001",
+           "legal_name": "PT Nusantara Process Engineering",
+           "short_name": "PT Nusantara",
+           "city": "Jakarta",
+           "country_code": "ID",
+           "country": "Indonesia",
+           "price_group": "B",
+           "salesperson": "sales:zhou",
+           "lifecycle": "active"
+          }
+         ],
+         "has_more": false
+        }
+▶ 第 2 步  → 模型 · 4 条消息
+◀ 模型   tool_calls  请求 scrm_write_followup
+    生成 已找到雅加达客户：PT Nusantara Process Engineering（编号 C-E001）。现在为您记录跟进：  
+    用量 输入 3043 · 输出 84 · 合计 3127 tokens  ≈ ¥0.0026
+    → scrm_write_followup {"customer_id": "C-E001", "body": "已出 2 台 X200 的报价 QT-000001，等客户确认。"}  #ba332c
+    ⚖ scrm_write_followup 需确认 write_internal · ask · local
+    ▣ 变更集 scrm_write_followup（write_internal） · customer_id="C-E001" · body="已出 2 台 X200 的报价 QT-000001，等客户确认。"  op=0336bb2a29de digest=7d6994e9aa111df0
+┌─ 变更集 · 需要确认 ────────────────────────────────────
+│ 操作   scrm_write_followup（write_internal） · customer_id="C-E001" · body="已出 2 台 X200 的报价 QT-000001，等客户确认。"
+│ 参数   {"customer_id": "C-E001", "body": "已出 2 台 X200 的报价 QT-000001，等客户确认。"}
+│ 标识   operation_id=0336bb2a29de  digest=7d6994e9aa111df0  有效 10 分钟
+│ 确认人 sales:zhou
+└─ [y] 同意   [n] 拒绝   [{...}] 改参数（JSON，例如 {"lines": [{"sku": "X200", "qty": 10}]}）
+>     ✓ 已确认 sales:zhou
+    ⇢ 写入 Idempotency-Key=29eb0cfb77bf:0336bb2a29de agent:29eb0cfb77bf
+    ← scrm_write_followup ok  31 ms
+        {
+         "outcome": "saved",
+         "id": "FU-000012",
+         "followup_id": "FU-000012",
+         "customer_id": "C-E001",
+         "type": "note",
+         "occurred_at": "2026-09-20T10:00:00+08:00",
+         "owner": "sales:zhou",
+         "next_action_at": null,
+         "body": "已出 2 台 X200 的报价 QT-000001，等客户确认。",
+         "source": "agent",
+         "run_id": "29eb0cfb77bf",
+         "idempotent_replay": false,
+         "recorded": true
+        }
+    业务结果 resolved  scrm_write_followup 已写入
+▶ 第 3 步  → 模型 · 6 条消息
+◀ 模型   final
+    生成 已为雅加达客户 PT Nusantara Process Engineering（C-E001）记录跟进：   「已出 2 台 X200 的报价 QT-000001，等客户确认。」   跟进编号：FU-000012。
+    用量 输入 3313 · 输出 64 · 合计 3377 tokens  ≈ ¥0.0028
+────────────────────────────────────────────────────────
+会话 d8383be0   run 29eb0cfb77bf
+状态 completed / completed · 3 步
+用量 输入 9233 · 输出 185 · 合计 9418 tokens
+费用 ¥0.0078  qwen-plus：输入 ¥0.0008/千 · 输出 ¥0.002/千（内置默认，可能过时，以百炼控制台为准）
+事件 ../../evals/runs/w02-followup-smoke-20261107/d8383be0/events.jsonl
+继续 agent-cli chat --resume d8383be0 "…"
+回放 agent-cli replay d8383be0
+────────────────────────────────────────────────────────
+已为雅加达客户 PT Nusantara Process Engineering（C-E001）记录跟进：  
+「已出 2 台 X200 的报价 QT-000001，等客户确认。」  
+跟进编号：FU-000012。

@@ -88,6 +88,14 @@ E   ImportError: cannot import name 'FakeMcpClient' from 'agent_app.doubles'
 
 绿：`131 passed`；T32i 对真实 stdio 服务 `4 passed`（S01 两个工具结果与本地逐字段相等，事件序列相同，`policy.decided.source = mcp:erp-readonly`）。
 
+## 2.8 T33 红（分支 task/w2-followup）
+
+```
+E   ImportError: cannot import name 'FakeScrm' from 'agent_app.doubles'
+```
+
+绿：`146 passed`；SCRM 写契约（私有 9377）`4 passed`。过程中 `reject()` 的 note 是关键字参数，测试里写成位置参数失败一次（TypeError），改测试。记录在 `followup.md`。
+
 ## 冒烟后的两处修正（0295234）
 
 - `search_customers` 的 `q` 改可选、q / country_code 至少一个：T16 新增「只按国家列候选」一条；`135 passed`。

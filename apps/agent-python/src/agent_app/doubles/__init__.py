@@ -2,8 +2,9 @@
 from .fake_erp import FakeERP
 from .fake_knowledge import FakeKnowledge
 from .fake_mcp import FakeMcpClient
+from .fake_scrm import FakeScrm
 from .scripted_confirm import ScriptedConfirm, amend, approve, approve_with, no_decision, reject
 from .scripted_model import ScriptedModel, final, malformed, tool_calls
 
-__all__ = ["FakeERP", "FakeKnowledge", "FakeMcpClient", "ScriptedConfirm", "ScriptedModel", "amend", "approve", "approve_with", "final",
+__all__ = ["FakeERP", "FakeKnowledge", "FakeMcpClient", "FakeScrm", "ScriptedConfirm", "ScriptedModel", "amend", "approve", "approve_with", "final",
            "malformed", "no_decision", "reject", "tool_calls"]

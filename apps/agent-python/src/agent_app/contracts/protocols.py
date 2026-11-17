@@ -55,6 +55,14 @@ class Tool(Protocol):
 
 
 @runtime_checkable
+class ScrmGateway(Protocol):
+    """SCRM 访问（独立变体）。生产者：ScrmClient、FakeScrm；消费者：tools/followup.py。失败抛 ToolFailure。"""
+    def list_followups(self, customer_id: str, *, timeout_s: float) -> dict: ...
+    def create_followup(self, customer_id: str, body: str, *, type: str = "note", next_action_at: str | None = None,
+                        run_id: str | None, idempotency_key: str, actor: str, timeout_s: float) -> dict: ...
+
+
+@runtime_checkable
 class WriteTool(Protocol):
     """写工具：多收一个 Operation（幂等键、操作者、尝试次数）。运行时按策略表的档位决定调哪种签名。"""
     spec: ToolSpec

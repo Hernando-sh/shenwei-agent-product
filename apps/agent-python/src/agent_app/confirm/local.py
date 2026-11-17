@@ -20,7 +20,7 @@ class LocalConfirm:
         p(f"│ 参数   {json.dumps(changeset.args, ensure_ascii=False)}")
         p(f"│ 标识   operation_id={changeset.operation_id}  digest={changeset.digest}  有效 {int(ttl_s // 60)} 分钟")
         p(f"│ 确认人 {self.actor}")
-        p("└─ [y] 同意   [n] 拒绝   [{...}] 改参数（JSON，例如 {\"lines\": [{\"sku\": \"X200\", \"qty\": 10}]}）")
+        p("└─ [y] 同意   [n] 拒绝   [{...}] 改参数（一段 JSON，键与上面「参数」里的同名，例如只写要改的那个）")
         self._out.write("> ")
         self._out.flush()
         line = self._in.readline()

@@ -21,6 +21,7 @@ from agent_app.policy import Policy
 from agent_app.tools import ToolRegistry, ToolRuntime
 from agent_app.tools.availability import GetAvailability
 from agent_app.tools.create_quote import CreateQuote
+from agent_app.tools.followup import WriteFollowup
 from agent_app.tools.customer import GetCustomer, SearchCustomers
 from agent_app.tools.knowledge import SearchKnowledge
 from agent_app.tools.order import GetOrder
@@ -166,11 +167,19 @@ def mcp_source(settings: Settings):
 def build_registry(settings: Settings, *, scripted: bool, text: str = "", source: str = "local"):
     if scripted:
         import pathlib
-        from agent_app.doubles import FakeERP, FakeKnowledge, ScriptedModel, final, tool_calls
+        from agent_app.doubles import FakeERP, FakeKnowledge, FakeScrm, ScriptedModel, final, tool_calls
         fixtures = pathlib.Path(__file__).resolve().parents[2] / "tests" / "fixtures"
         erp = FakeERP.from_fixtures(fixtures / "erp")
         kb = FakeKnowledge.from_fixtures(fixtures / "knowledge")
-        if "报" in text or "quote" in text.lower():                     # 2.6：离线报价脚本（走真实的确认环节）
+        scrm = FakeScrm.with_base()
+        if "跟进" in text or "followup" in text.lower():                 # 2.8：离线跟进脚本（内部写，询问模式也确认）
+            model = ScriptedModel([
+                tool_calls(("search_customers", {"q": "Jakarta"})),
+                tool_calls(("scrm_write_followup", {"customer_id": "C-E001", "type": "note",
+                                                    "body": text.split("：", 1)[-1].strip() or text})),
+                final("（离线脚本）已按确认结果处理：跟进编号与归属以 scrm_write_followup 的返回为准，详见上方事件。"),
+            ])
+        elif "报" in text or "quote" in text.lower():                     # 2.6：离线报价脚本（走真实的确认环节）
             model = ScriptedModel([
                 tool_calls(("search_customers", {"q": "Jakarta"})),
                 tool_calls(("price_quote", {"customer_id": "C-E001", "lines": [{"sku": "X200", "qty": 2}]})),
@@ -186,8 +195,10 @@ def build_registry(settings: Settings, *, scripted: bool, text: str = "", source
         from agent_app.llm import DashScopeClient
         from agent_app.tools.erp_client import ErpClient
         from agent_app.tools.knowledge_client import KnowledgeClient
+        from agent_app.tools.scrm_client import ScrmClient
         erp = ErpClient(settings.erp_base_url, settings.erp_api_key)
         kb = KnowledgeClient(settings.kb_base_url)
+        scrm = ScrmClient(settings.scrm_base_url, settings.scrm_api_key)
         model = DashScopeClient(settings.dashscope_api_key, settings.model, settings.model_base_url)
     if source == "mcp" and not scripted:
         _, read_tools = mcp_source(settings)                                                 # 2.7：两个只读换成 MCP 来源
@@ -197,7 +208,8 @@ def build_registry(settings: Settings, *, scripted: bool, text: str = "", source
              SearchCustomers(erp), GetCustomer(erp), GetReceivables(erp), ListQuotes(erp),   # 2.1：四个只读
              SearchKnowledge(kb),                                                            # 2.3：知识证据
              PriceQuote(erp),                                                                # 2.4：算价出草案
-             CreateQuote(erp)]                                                               # 2.6：写台账（需确认）
+             CreateQuote(erp),                                                               # 2.6：写台账（需确认）
+             WriteFollowup(scrm)]                                                            # 2.8：写跟进（内部写）
     return model, ToolRegistry(tools)
 
 

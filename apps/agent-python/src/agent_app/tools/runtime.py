@@ -155,8 +155,8 @@ class ToolRuntime:
                  replayed=None, record_id=None, code=f.error.code, attempt=2, duration_ms=ms)
             err = ToolError("unknown" if still_unknown else f.error.category,
                             "verify_failed" if still_unknown else f.error.code,
-                            (f"保存结果仍未知（核实也失败：{f.error.message}）。不要再次保存；需到 ERP 报价台账人工核对 "
-                             f"Idempotency-Key {op.idempotency_key}。") if still_unknown else
+                            (f"写入结果仍未知（核实也失败：{f.error.message}）。不要再次写入；需到目标系统人工核对 "
+                             f"Idempotency-Key {op.idempotency_key}（工具 {base['name']}）。") if still_unknown else
                             f"核实表明未保存：{f.error.message}")
             emit("tool.executed", **base, ok=False, category=err.category, code=err.code, message=err.message,
                  attempts=2, duration_ms=ms)
