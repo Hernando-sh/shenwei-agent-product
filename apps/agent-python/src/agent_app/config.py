@@ -29,6 +29,13 @@ class Settings:
     erp_base_url: str
     erp_api_key: str
     runs_dir: str
+    price_input_per_1k: float | None = None    # 元 / 千 token；不填则用 pricing.DEFAULT_PRICES
+    price_output_per_1k: float | None = None
+
+    @staticmethod
+    def _float(name: str) -> float | None:
+        v = os.environ.get(name, "").strip()
+        return float(v) if v else None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -40,4 +47,6 @@ class Settings:
             erp_base_url=os.environ.get("ERP_BASE_URL", "http://localhost:9100"),
             erp_api_key=os.environ.get("ERP_API_KEY", "east-demo-key"),
             runs_dir=os.environ.get("AGENT_RUNS_DIR", "runs"),
+            price_input_per_1k=cls._float("AGENT_PRICE_INPUT_PER_1K"),
+            price_output_per_1k=cls._float("AGENT_PRICE_OUTPUT_PER_1K"),
         )

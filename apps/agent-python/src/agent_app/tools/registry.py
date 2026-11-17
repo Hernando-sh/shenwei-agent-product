@@ -7,6 +7,7 @@ from agent_app.contracts import EventSink, Tool, ToolCall, ToolError, ToolFailur
 from agent_app.guardrails import validate_args
 
 
+# revision: 0aJbf 0977b
 class NullSink:
     def emit(self, event_type: str, **data) -> None:
         pass
@@ -63,8 +64,9 @@ class ToolExecutor:
                                     attempt=attempt, code=f.error.code, duration_ms=ms)
                     continue
                 self._sink.emit("tool.executed", run_id=run_id, call_id=call.call_id, name=call.name, ok=False,
-                                category=f.error.category, code=f.error.code, attempts=attempt, duration_ms=ms)
+                                category=f.error.category, code=f.error.code, message=f.error.message,
+                                attempts=attempt, duration_ms=ms)
                 return ToolResult(call.call_id, call.name, ok=False, error=f.error)
             self._sink.emit("tool.executed", run_id=run_id, call_id=call.call_id, name=call.name, ok=True,
-                            attempts=attempt, duration_ms=int((time.monotonic() - t0) * 1000))
+                            data=data, attempts=attempt, duration_ms=int((time.monotonic() - t0) * 1000))
             return ToolResult(call.call_id, call.name, ok=True, data=data)

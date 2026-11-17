@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from agent_app.observability import read_events
 
 
-# generated: 0eH4f 0dNff
 @dataclass
 class ReplayStep:
     run_id: str
@@ -16,6 +15,7 @@ class ReplayStep:
     response_kind: str | None = None
     tool_calls: list[dict] = field(default_factory=list)   # {call_id, name, outcome}
     text: str | None = None
+    usage: dict | None = None    # 本步 {prompt_tokens, completion_tokens, total_tokens}
 
 
 @dataclass
@@ -49,7 +49,7 @@ def replay(events_path: str | pathlib.Path) -> ReplayReport:
             if st is None:
                 gaps.append(f"{rid} 第 {e['step']} 步有响应但没有请求记录")
                 continue
-            st.response_kind, st.text = e["kind"], e.get("text")
+            st.response_kind, st.text, st.usage = e["kind"], e.get("text"), e.get("usage")
             for c in e.get("tool_calls", []):
                 st.tool_calls.append({"call_id": c["call_id"], "name": c["name"], "outcome": "requested"})
                 pending_calls[c["call_id"]] = st
