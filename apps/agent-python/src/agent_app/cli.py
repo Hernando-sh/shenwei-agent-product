@@ -15,10 +15,12 @@ from agent_app.confirm import LocalConfirm
 from agent_app.config import Settings
 from agent_app.contracts import Budget, Usage
 from agent_app.observability import JsonlSink
+from agent_app.ops import JsonlLedger
 from agent_app.pricing import Price, fmt_yuan, resolve as resolve_price
 from agent_app.policy import Policy
 from agent_app.tools import ToolRegistry, ToolRuntime
 from agent_app.tools.availability import GetAvailability
+from agent_app.tools.create_quote import CreateQuote
 from agent_app.tools.customer import GetCustomer, SearchCustomers
 from agent_app.tools.knowledge import SearchKnowledge
 from agent_app.tools.price_quote import PriceQuote
@@ -133,6 +135,15 @@ class TeeSink:
             err(f"    {red('✗ 确认无效')} {data['reason']}")
         elif event_type == "mode.changed":
             err(f"    {dim('模式')} {data['from']} → {bold(data['to'])}  {dim(data['by'])}")
+        elif event_type == "operation.started":
+            err(f"    {dim('⇢ 写入')} {dim('Idempotency-Key=' + data['idempotency_key'] + ' ' + data['actor'])}")
+        elif event_type == "operation.unknown":
+            err(f"    {yellow('? 结果未知')} {data['code']} {dim(data['message'])}  {dim('同键核实…')}")
+        elif event_type == "operation.verified":
+            c = data["committed"]
+            tag = green("已提交" + ("（重放取回原结果）" if data.get("replayed") else "（这次是新执行）")) if c else \
+                  (red("仍未知") if c is None else red("未提交"))
+            err(f"    {dim('✔ 核实')} {tag} {dim(data.get('record_id') or '')}")
         elif event_type == "run.outcome":
             err(f"    {bold('业务结果')} {data['outcome']}  {dim(data.get('detail') or '')}")
         elif event_type == "model.error":
@@ -141,17 +152,25 @@ class TeeSink:
             err(yellow("■ 预算耗尽：") + data["kind"])
 
 
-def build_registry(settings: Settings, *, scripted: bool):
+def build_registry(settings: Settings, *, scripted: bool, text: str = ""):
     if scripted:
         import pathlib
         from agent_app.doubles import FakeERP, FakeKnowledge, ScriptedModel, final, tool_calls
         fixtures = pathlib.Path(__file__).resolve().parents[2] / "tests" / "fixtures"
         erp = FakeERP.from_fixtures(fixtures / "erp")
         kb = FakeKnowledge.from_fixtures(fixtures / "knowledge")
-        model = ScriptedModel([
-            tool_calls(("get_product_spec", {"model": "X200"}), ("get_availability", {"model": "X200", "qty": 1})),
-            final("（离线脚本）X200 离心输送泵，260 W，最大流量 5 L/min；可用 5 台，最早 2026-09-23 深圳发运。"),
-        ])
+        if "报" in text or "quote" in text.lower():                     # 2.6：离线报价脚本（走真实的确认环节）
+            model = ScriptedModel([
+                tool_calls(("search_customers", {"q": "Jakarta"})),
+                tool_calls(("price_quote", {"customer_id": "C-E001", "lines": [{"sku": "X200", "qty": 2}]})),
+                tool_calls(("create_quote", {"customer_id": "C-E001", "lines": [{"sku": "X200", "qty": 2}]})),
+                final("（离线脚本）已按确认结果处理：报价号与金额以 create_quote 的返回为准，详见上方事件。"),
+            ])
+        else:
+            model = ScriptedModel([
+                tool_calls(("get_product_spec", {"model": "X200"}), ("get_availability", {"model": "X200", "qty": 1})),
+                final("（离线脚本）X200 离心输送泵，260 W，最大流量 5 L/min；可用 5 台，最早 2026-09-23 深圳发运。"),
+            ])
     else:
         from agent_app.llm import DashScopeClient
         from agent_app.tools.erp_client import ErpClient
@@ -162,7 +181,8 @@ def build_registry(settings: Settings, *, scripted: bool):
     tools = [GetProductSpec(erp), GetAvailability(erp), GetShipment(erp),
              SearchCustomers(erp), GetCustomer(erp), GetReceivables(erp), ListQuotes(erp),   # 2.1：四个只读
              SearchKnowledge(kb),                                                            # 2.3：知识证据
-             PriceQuote(erp)]                                                                # 2.4：算价出草案
+             PriceQuote(erp),                                                                # 2.4：算价出草案
+             CreateQuote(erp)]                                                               # 2.6：写台账（需确认）
     return model, ToolRegistry(tools)
 
 
@@ -181,9 +201,10 @@ def cmd_chat(a) -> int:
         cid = store.new_id()
     price = resolve_price(settings.model, settings.price_input_per_1k, settings.price_output_per_1k)
     sink = TeeSink(JsonlSink(store.events_path(cid)), show_request=a.show_request, verbose=a.verbose, price=price)
-    model, registry = build_registry(settings, scripted=a.scripted)
+    model, registry = build_registry(settings, scripted=a.scripted, text=a.text)
     budget = Budget(max_steps=a.max_steps, tool_retries=a.tool_retries, tool_timeout_s=a.tool_timeout)
-    runtime = ToolRuntime(registry, policy=Policy(), sink=sink, mode=a.mode, confirmer=LocalConfirm(a.actor))
+    runtime = ToolRuntime(registry, policy=Policy(), sink=sink, mode=a.mode, confirmer=LocalConfirm(a.actor),
+                          ledger=JsonlLedger(store.dir(cid) / "operations.jsonl"))
     loop = AgentLoop(model, runtime, registry.specs(), sink=sink, budget=budget)
     result = loop.run(a.text, history=history)
     store.save(cid, result.messages)

@@ -71,6 +71,45 @@ class ErpClient:
     def price_quote(self, customer_id: str, lines: list[dict], *, timeout_s: float) -> dict:
         return self._get("/v1/quotes/price", {"customer_id": customer_id, "lines": lines_param(lines)}, timeout_s=timeout_s)
 
+    # ---- W2 · 2.6 写台账 ----
+    def create_quote(self, customer_id: str, lines: list[dict], *, idempotency_key: str, actor: str, timeout_s: float,
+                     customer_reference: str | None = None, note: str | None = None) -> dict:
+        body: dict = {"customer_id": customer_id, "lines": [{"sku": l["sku"], "qty": int(l["qty"])} for l in lines]}
+        if customer_reference:
+            body["customer_reference"] = customer_reference
+        if note:
+            body["note"] = note
+        return self._post("/v1/quotes", body, idempotency_key=idempotency_key, actor=actor, timeout_s=timeout_s)
+
+    def _post(self, path: str, body: dict, *, idempotency_key: str, actor: str, timeout_s: float) -> dict:
+        """写请求。与 _get 的差别：5xx、超时、断连都是「结果未知」（category=unknown），由运行时同键核实，不在这里重试。"""
+        headers = {"Idempotency-Key": idempotency_key, "X-Actor": actor}
+        try:
+            r = self._client.post(path, json=body, headers=headers, timeout=timeout_s)
+        except httpx.TimeoutException as e:
+            raise ToolFailure("unknown", "client_timeout", f"ERP 写请求超时（{timeout_s}s），结果未知：{type(e).__name__}") from e
+        except httpx.HTTPError as e:
+            raise ToolFailure("unknown", "connection_error", f"ERP 写请求断连，结果未知：{type(e).__name__}") from e
+        data = _problem(r)
+        if r.status_code in (200, 201):
+            if not data:
+                raise ToolFailure("unknown", "not_json", "ERP 写请求返回了非 JSON，结果未知")
+            data["idempotent_replay"] = r.headers.get("idempotent-replay", "").lower() == "true"
+            data["original_request_id"] = r.headers.get("idempotent-original-request-id")
+            return data
+        code, detail = data.get("code", str(r.status_code)), data.get("detail", f"ERP 返回 {r.status_code}")
+        if r.status_code >= 500:
+            raise ToolFailure("unknown", code, f"{detail}（结果未知，需同键核实）")
+        if r.status_code == 404:
+            raise ToolFailure("not_found", code, detail)
+        if r.status_code in (401, 403):
+            raise ToolFailure("rejected", code, detail)
+        if r.status_code == 409:
+            raise ToolFailure("rejected", code, detail)                     # idempotency_conflict / in_progress
+        if r.status_code in (400, 422):
+            raise ToolFailure("input_error", code, detail + _errors(data))
+        raise ToolFailure("upstream_error", code, detail)
+
 
 def lines_param(lines: list[dict]) -> str:
     """ERP 的行写法：X200:2,S10:4。"""

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from .types import Changeset, ConfirmToken, ModelResponse, PolicyDecision, ToolError, ToolSpec
+from .types import Changeset, ConfirmToken, ModelResponse, Operation, PolicyDecision, ToolError, ToolSpec
 
 
+# checksum: 04Nb0 03B1e
 class ToolFailure(Exception):
     """工具内部用来向执行层报告失败；执行层把它变成 ToolResult(ok=False)。"""
 
@@ -35,6 +36,9 @@ class ErpGateway(Protocol):
     def list_quotes(self, customer_id: str, *, status: str | None = None, timeout_s: float) -> dict: ...
     # ---- W2 · 2.4 算价（只算不记，recorded=false）----
     def price_quote(self, customer_id: str, lines: list[dict], *, timeout_s: float) -> dict: ...
+    # ---- W2 · 2.6 写台账。返回体多一个 idempotent_replay 布尔；5xx / 超时 / 断连 → ToolFailure("unknown", …) ----
+    def create_quote(self, customer_id: str, lines: list[dict], *, idempotency_key: str, actor: str,
+                     timeout_s: float, customer_reference: str | None = None, note: str | None = None) -> dict: ...
 
 
 @runtime_checkable
@@ -49,6 +53,19 @@ class Tool(Protocol):
     """spec 给模型看；可选属性 source（缺省 local）只用于记录，策略不看它。"""
     spec: ToolSpec
     def run(self, args: dict, *, timeout_s: float) -> dict: ...
+
+
+@runtime_checkable
+class WriteTool(Protocol):
+    """写工具：多收一个 Operation（幂等键、操作者、尝试次数）。运行时按策略表的档位决定调哪种签名。"""
+    spec: ToolSpec
+    def run(self, args: dict, *, timeout_s: float, operation: Operation) -> dict: ...
+
+
+@runtime_checkable
+class OperationLedger(Protocol):
+    """操作台账：每个写操作的状态变化追加一行（pending → committed / unknown / failed）。"""
+    def record(self, **row) -> None: ...
 
 
 @runtime_checkable

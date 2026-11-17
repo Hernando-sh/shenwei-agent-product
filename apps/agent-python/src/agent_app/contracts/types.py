@@ -92,6 +92,21 @@ class Changeset:
 
 
 @dataclass(frozen=True)
+class Operation:
+    """一次写操作的标识，由运行时从变更集生成、交给写工具。Idempotency-Key = <run_id>:<operation_id>，X-Actor = agent:<run_id>。
+    attempt 从 1 起；核实（同键重放）是 attempt 2，写工具据此跳过已经判过的前置规则。"""
+    operation_id: str
+    run_id: str | None
+    idempotency_key: str
+    actor: str
+    digest: str
+    attempt: int = 1
+
+    def next_attempt(self) -> "Operation":
+        return Operation(self.operation_id, self.run_id, self.idempotency_key, self.actor, self.digest, self.attempt + 1)
+
+
+@dataclass(frozen=True)
 class ConfirmToken:
     """操作者对一个变更集的决定。decision：approve / reject / amend / none（没有拿到决定：EOF、超时）。
     approve 只在 operation_id 与 digest 都对、且在有效期内才算数（W2-AC-07）。"""
@@ -127,7 +142,7 @@ class ToolCall:
 @dataclass(frozen=True)
 class ToolError:
     """工具失败的分类。category 是程序分支依据，code 是上游机器码，message 给模型 / 人看。"""
-    category: str  # unknown_tool | input_error | rejected | not_found | timeout | upstream_error | malformed
+    category: str  # unknown_tool | input_error | rejected | not_found | timeout | upstream_error | malformed | unknown（写：结果未知）
     code: str
     message: str
 

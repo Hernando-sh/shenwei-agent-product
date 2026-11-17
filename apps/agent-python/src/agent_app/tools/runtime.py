@@ -2,7 +2,8 @@
     解析 → 校验 → 策略 → 确认决策 → 执行 → 结果
 每个工具请求、不论来源，都从这里过；被拒绝的也留事件（I2）。Loop 只认 execute(...) 的签名，和 W1 的 ToolExecutor 相同。
 2.2：策略 allow / reject。2.5：confirm → 变更集 → 确认适配器 → 令牌校验（绑定摘要与有效期）→ 执行；没有适配器按拒绝处理。
-2.6：写入的操作台账与未知结果核实。
+2.6：写入带 Operation（幂等键 <run_id>:<operation_id>、X-Actor agent:<run_id>）；结果未知（502 / 超时）→ operation.unknown →
+同键核实一次 → operation.verified；核实仍失败 → failed，需人工核对台账。写不进只读重试（ADR-002 / ADR-006）。
 业务结果（周 spec §5）由运行时在能判定时写进独立事件 run.outcome：resolved / declined / cancelled；没有该事件且 run 非 completed → failed。"""
 from __future__ import annotations
 
@@ -10,19 +11,21 @@ import json
 import time
 
 from agent_app.confirm import build_changeset, validate_token
-from agent_app.contracts import (ConfirmationAdapter, EventSink, PolicyProtocol, Tool, ToolCall, ToolError, ToolFailure,
-                                 ToolKind, ToolResult)
+from agent_app.contracts import (ConfirmationAdapter, EventSink, Operation, OperationLedger, PolicyProtocol, Tool,
+                                 ToolCall, ToolError, ToolFailure, ToolKind, ToolResult)
 from agent_app.guardrails import validate_args
+from agent_app.ops.ledger import NullLedger
 
 from .registry import NullSink, ToolRegistry
 
 MODES = ("ask", "auto")
+WRITE_KINDS = (ToolKind.WRITE_INTERNAL, ToolKind.WRITE_EXTERNAL)
 
 
 class ToolRuntime:
     def __init__(self, registry: ToolRegistry, *, policy: PolicyProtocol, sink: EventSink | None = None,
                  mode: str = "ask", confirmer: ConfirmationAdapter | None = None, confirm_ttl_s: float = 600.0,
-                 clock=time.time) -> None:
+                 clock=time.time, ledger: OperationLedger | None = None) -> None:
         self._registry = registry
         self._policy = policy
         self._sink = sink or NullSink()
@@ -30,6 +33,7 @@ class ToolRuntime:
         self._confirmer = confirmer
         self.confirm_ttl_s = confirm_ttl_s      # 周 spec §5：确认有效期 10 分钟，真实时钟
         self._clock = clock
+        self._ledger = ledger or NullLedger()
 
     def set_mode(self, mode: str, *, by: str, run_id: str | None = None) -> None:
         if mode not in MODES:
@@ -59,8 +63,12 @@ class ToolRuntime:
             return self._reject(base, "policy", ToolError("rejected", decision.reason, decision.message))
         if decision.action == "confirm":                                            # 确认决策
             return self._confirm_and_run(tool, args, base, decision.kind, timeout_s=timeout_s)
-        result = self._run(tool, args, base, timeout_s=timeout_s,
-                           retries=retries if decision.kind == ToolKind.READ else 0)  # ADR-002：只有只读才重试
+        if decision.kind in WRITE_KINDS:                                            # 放行的写（自动模式下的内部写）
+            cs = build_changeset(run_id=base["run_id"], call_id=base["call_id"], tool=base["name"], kind=decision.kind,
+                                 args=args, now=self._clock())
+            emit("changeset.created", **base, **cs.to_event())
+            return self._write(tool, args, base, decision.kind, cs)
+        result = self._run(tool, args, base, timeout_s=timeout_s, retries=retries)  # 只读：ADR-002 有界重试
         self._outcome_from_result(base, decision.kind, result)
         return result
 
@@ -101,8 +109,72 @@ class ToolRuntime:
                 "需要重新确认。"))
         emit("confirmation.approved", **base, operation_id=cs.operation_id, digest=cs.digest, actor=token.actor,
              decided_at=token.decided_at)
-        result = self._run(tool, args, base, timeout_s=timeout_s, retries=0)       # 写：不重试（ADR-002 / 2.6 处理未知）
-        self._outcome_from_result(base, kind, result)
+        return self._write(tool, args, base, kind, cs, timeout_s=timeout_s)
+
+    # ---- 写：带操作标识；未知结果同键核实一次（ADR-006）----
+    def _write(self, tool: Tool, args: dict, base: dict, kind, cs, *, timeout_s: float = 5.0) -> ToolResult:
+        emit, ledger = self._sink.emit, self._ledger
+        run_id = base["run_id"] or "-"
+        op = Operation(operation_id=cs.operation_id, run_id=base["run_id"], idempotency_key=f"{run_id}:{cs.operation_id}",
+                       actor=f"agent:{run_id}", digest=cs.digest)
+        row = dict(operation_id=op.operation_id, run_id=op.run_id, tool=base["name"], idempotency_key=op.idempotency_key,
+                   digest=op.digest)
+        ledger.record(**row, status="pending", attempt=1)
+        emit("operation.started", **base, operation_id=op.operation_id, idempotency_key=op.idempotency_key, actor=op.actor,
+             kind=kind)
+        t0 = time.monotonic()
+        try:
+            data = tool.run(args, timeout_s=timeout_s, operation=op)
+        except ToolFailure as f:
+            ms = int((time.monotonic() - t0) * 1000)
+            if f.error.category != "unknown":                                      # 明确失败：没写进去，不核实
+                ledger.record(**row, status="failed", attempt=1, code=f.error.code, message=f.error.message)
+                emit("tool.executed", **base, ok=False, category=f.error.category, code=f.error.code,
+                     message=f.error.message, attempts=1, duration_ms=ms)
+                return ToolResult(base["call_id"], base["name"], ok=False, error=f.error)
+            ledger.record(**row, status="unknown", attempt=1, code=f.error.code, message=f.error.message)
+            emit("operation.unknown", **base, operation_id=op.operation_id, idempotency_key=op.idempotency_key,
+                 code=f.error.code, message=f.error.message, attempt=1, duration_ms=ms)
+            return self._verify(tool, args, base, kind, op, row, timeout_s=timeout_s)
+        ms = int((time.monotonic() - t0) * 1000)
+        return self._written(base, kind, op, row, data, ms, attempts=1)
+
+    def _verify(self, tool: Tool, args: dict, base: dict, kind, op: Operation, row: dict, *, timeout_s: float) -> ToolResult:
+        """同一个幂等键再发一次（attempt 2）：已提交 → 拿回原结果（replay）；未提交 → 这次是新执行。只核实一次。"""
+        emit, ledger = self._sink.emit, self._ledger
+        op2 = op.next_attempt()
+        t0 = time.monotonic()
+        try:
+            data = tool.run(args, timeout_s=timeout_s, operation=op2)
+        except ToolFailure as f:
+            ms = int((time.monotonic() - t0) * 1000)
+            still_unknown = f.error.category == "unknown"
+            ledger.record(**row, status="unknown" if still_unknown else "failed", attempt=2, code=f.error.code,
+                          message=f.error.message)
+            emit("operation.verified", **base, operation_id=op.operation_id, committed=None if still_unknown else False,
+                 replayed=None, record_id=None, code=f.error.code, attempt=2, duration_ms=ms)
+            err = ToolError("unknown" if still_unknown else f.error.category,
+                            "verify_failed" if still_unknown else f.error.code,
+                            (f"保存结果仍未知（核实也失败：{f.error.message}）。不要再次保存；需到 ERP 报价台账人工核对 "
+                             f"Idempotency-Key {op.idempotency_key}。") if still_unknown else
+                            f"核实表明未保存：{f.error.message}")
+            emit("tool.executed", **base, ok=False, category=err.category, code=err.code, message=err.message,
+                 attempts=2, duration_ms=ms)
+            self._outcome(base, "failed", err.message, operation_id=op.operation_id)
+            return ToolResult(base["call_id"], base["name"], ok=False, error=err)
+        ms = int((time.monotonic() - t0) * 1000)
+        emit("operation.verified", **base, operation_id=op.operation_id, committed=True,
+             replayed=bool(data.get("idempotent_replay")) if isinstance(data, dict) else None,
+             record_id=data.get("id") if isinstance(data, dict) else None, attempt=2, duration_ms=ms)
+        return self._written(base, kind, op, row, data, ms, attempts=2)
+
+    def _written(self, base: dict, kind, op: Operation, row: dict, data, ms: int, *, attempts: int) -> ToolResult:
+        record_id = data.get("id") if isinstance(data, dict) else None
+        declined = isinstance(data, dict) and data.get("outcome") == "declined"
+        self._ledger.record(**row, status="declined" if declined else "committed", attempt=attempts, record_id=record_id)
+        self._sink.emit("tool.executed", **base, ok=True, data=data, attempts=attempts, duration_ms=ms)
+        result = ToolResult(base["call_id"], base["name"], ok=True, data=data)
+        self._outcome_from_result(base, kind, result, operation_id=op.operation_id)
         return result
 
     # ---- 业务结果 ----
@@ -110,13 +182,13 @@ class ToolRuntime:
         self._sink.emit("run.outcome", run_id=base["run_id"], call_id=base["call_id"], name=base["name"],
                         outcome=outcome, detail=detail, **extra)
 
-    def _outcome_from_result(self, base: dict, kind, result: ToolResult) -> None:
+    def _outcome_from_result(self, base: dict, kind, result: ToolResult, **extra) -> None:
         if not result.ok or not isinstance(result.data, dict):
             return
         if result.data.get("outcome") == "declined":                               # 规则拦下（约定字段，不认工具名）
-            self._outcome(base, "declined", result.data.get("reason") or "被规则拦下", rule=result.data.get("rule"))
-        elif kind in (ToolKind.WRITE_INTERNAL, ToolKind.WRITE_EXTERNAL):
-            self._outcome(base, "resolved", f"{base['name']} 已写入", record_id=result.data.get("id"))
+            self._outcome(base, "declined", result.data.get("reason") or "被规则拦下", rule=result.data.get("rule"), **extra)
+        elif kind in WRITE_KINDS:
+            self._outcome(base, "resolved", f"{base['name']} 已写入", record_id=result.data.get("id"), **extra)
 
     # ---- 分支 ----
     def _reject(self, base: dict, reason: str, err: ToolError) -> ToolResult:

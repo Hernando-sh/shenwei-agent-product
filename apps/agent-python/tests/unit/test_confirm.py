@@ -26,7 +26,7 @@ class _WriteStub:
             "required": ["customer_id"], "additionalProperties": False})
         self.written: list[dict] = []
 
-    def run(self, args, *, timeout_s):
+    def run(self, args, *, timeout_s, operation=None):
         self.written.append(args)
         return {"id": f"QT-{len(self.written):06d}", **args}
 
@@ -58,7 +58,7 @@ def test_t26_write_waits_for_confirmation_then_executes_once():
     # 适配器看到的是变更集，不是原始字符串；适配器收到请求之前工具没有被执行（由事件顺序证明）
     assert len(confirmer.requests) == 1 and isinstance(confirmer.requests[0], Changeset)
     assert _types(sink) == ["tool.requested", "policy.decided", "changeset.created", "confirmation.requested",
-                            "confirmation.approved", "tool.executed", "run.outcome"]
+                            "confirmation.approved", "operation.started", "tool.executed", "run.outcome"]
     assert sink.events[-1]["outcome"] == "resolved"
     cs = sink.events[2]
     assert cs["operation_id"] and cs["digest"] and cs["tool"] == "create_quote" and cs["kind"] == "write_external"
@@ -160,7 +160,8 @@ def test_t29_auto_mode_internal_write_runs_without_asking_but_with_events():
     rt, sink = _runtime(tool, confirmer, mode="auto")
     r = rt.execute(_call("scrm_write_followup", {"customer_id": "C-E001", "body": "已出报价"}), timeout_s=1, run_id="r1")
     assert r.ok and len(tool.written) == 1 and confirmer.requests == []
-    assert _types(sink) == ["tool.requested", "policy.decided", "tool.executed", "run.outcome"]
+    assert _types(sink) == ["tool.requested", "policy.decided", "changeset.created", "operation.started", "tool.executed",
+                            "run.outcome"]
     assert sink.events[1]["action"] == "allow" and sink.events[1]["kind"] == "write_internal"
 
 

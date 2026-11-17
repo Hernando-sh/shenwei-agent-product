@@ -1,6 +1,7 @@
 """FakeERP：固定数据 + 调用计数 + 故障开关。实现 ErpGateway，和真实 ErpClient 可互换。"""
 from __future__ import annotations
 
+import datetime as dt
 import json
 import pathlib
 from collections import Counter
@@ -19,6 +20,10 @@ class FakeERP:
     receivables: dict[str, dict] = field(default_factory=dict)    # 2.1：按客户编号
     quotes: dict[str, dict] = field(default_factory=dict)         # 2.1：台账，按报价号；测试可直接预置
     prices: dict[tuple[str, str], dict] = field(default_factory=dict)  # 2.4：(customer_id, "X200:2,S10:4") → 录制的算价结果
+    idempotency: dict[str, tuple[str, dict]] = field(default_factory=dict)  # 2.6：Idempotency-Key → (请求体摘要, 原响应)
+    write_requests: list[dict] = field(default_factory=list)              # 2.6：每次写请求的头与体
+    lost_times: dict[str, int] = field(default_factory=dict)              # 2.6：response_lost：提交后再报 502
+    now: str = "2026-09-20T10:00:00+08:00"                                # ERP 虚拟时钟
     faults: dict[str, ToolFailure] = field(default_factory=dict)   # 按方法名注入：{"get_inventory": ToolFailure(...)}
     fault_times: dict[str, int] = field(default_factory=dict)      # 注入几次；缺省一直
     calls: Counter = field(default_factory=Counter)
@@ -110,6 +115,43 @@ class FakeERP:
         if key not in self.prices:
             raise ToolFailure("upstream_error", "no_fixture", f"FakeERP 没有 {key} 的算价快照：先对 ERP 录制（make fixtures）")
         return json.loads(json.dumps(self.prices[key]))
+
+    # ---- W2 · 2.6 写台账 ----
+    def response_lost(self, method: str, times: int = 1) -> None:
+        """模拟 ERP 的 response_lost：业务已提交，但调用方只收到 502。"""
+        self.lost_times[method] = times
+
+    def create_quote(self, customer_id: str, lines: list[dict], *, idempotency_key: str, actor: str, timeout_s: float,
+                     customer_reference: str | None = None, note: str | None = None) -> dict:
+        self.calls["create_quote"] += 1
+        body = {"customer_id": customer_id, "lines": [{"sku": str(l["sku"]).upper(), "qty": int(l["qty"])} for l in lines]}
+        self.write_requests.append({"idempotency_key": idempotency_key, "actor": actor, "body": body})
+        self._maybe_fail("create_quote")                                   # 注入的失败在提交之前（timeout / error）
+        body_digest = json.dumps(body, sort_keys=True)
+        if idempotency_key in self.idempotency:                            # 同键重放
+            seen_digest, original = self.idempotency[idempotency_key]
+            if seen_digest != body_digest:
+                raise ToolFailure("rejected", "idempotency_conflict", "同一个 Idempotency-Key 已用于内容不同的请求")
+            return {**json.loads(json.dumps(original)), "idempotent_replay": True}
+        price = self.price_quote(customer_id, body["lines"], timeout_s=timeout_s)   # 用录制的算价结果填台账
+        self.calls["price_quote"] -= 1                                      # 内部算价不算一次工具调用
+        qid = f"QT-{len(self.quotes) + 1:06d}"
+        valid_until = (dt.date.fromisoformat(price["price_date"]) + dt.timedelta(days=30)).isoformat()
+        quote = {"id": qid, "revision": 1, "supersedes_quote_id": None, "customer_id": customer_id,
+                 "status": "issued", "valid_until": valid_until, "is_expired": False,
+                 "lines": price["lines"], "total_amount": price["total_amount"], "currency": price["currency"],
+                 "incoterm": price.get("incoterm"), "payment_terms_code": price.get("payment_terms_code"),
+                 "payment_terms": price.get("payment_terms"), "price_rule_ref": price.get("price_rule_ref"),
+                 "fx_rate": price.get("fx_rate"), "price_date": price.get("price_date"),
+                 "customer_reference": customer_reference, "note": note,
+                 "created_by": actor, "created_at": self.now, "updated_at": self.now}
+        self.quotes[qid] = quote
+        self.idempotency[idempotency_key] = (body_digest, quote)
+        left = self.lost_times.get("create_quote", 0)
+        if left > 0:                                                        # 已提交，但响应丢了
+            self.lost_times["create_quote"] = left - 1
+            raise ToolFailure("unknown", "bad_gateway", "网关错误，请求结果未知")
+        return {**json.loads(json.dumps(quote)), "idempotent_replay": False}
 
     @classmethod
     def from_fixtures(cls, fixtures_dir: str | pathlib.Path) -> "FakeERP":
